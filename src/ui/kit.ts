@@ -56,8 +56,8 @@ export const kp = `<div class="keys">${['1', '2', '3', '4', '5', '6', '7', '8', 
 
 export const lock = (t = '10:00') => `<span class="lockchip">${I('shield')}<span data-clock>${t}</span></span>`;
 export const ah = (t: string, clock?: string) => hdr(t, lock(clock));
-export const xhdr = (t: string, act?: string, clock?: string) =>
-  `<div class="hdr"><div class="back"${A('aexit')}>${I('plus', 2.2).replace('<svg', '<svg style="transform:rotate(45deg)"')}</div>${t}<div class="act">${act || lock(clock)}</div></div>`;
+export const xhdr = (t: string, act?: string, clock?: string, close = 'aexit') =>
+  `<div class="hdr"><div class="back"${A(close)}>${I('plus', 2.2).replace('<svg', '<svg style="transform:rotate(45deg)"')}</div>${t}<div class="act">${act || lock(clock)}</div></div>`;
 export const anav = (on: string) =>
   `<div class="spacer"></div><div class="nav anav">${[['b', 'home', 'Bugun'], ['n', 'bell', 'Navbat'], ['o', 'users', 'Odamlar'], ['p', 'wallet', 'Pul'], ['y', 'filter', 'Yana']]
     .map(([k, ic, t]) => (k === on ? `<a class="pill"${A('anav', k)}>${I(ic)}${t}</a>` : `<a${A('anav', k)}>${I(ic)}</a>`)).join('')}</div>`;

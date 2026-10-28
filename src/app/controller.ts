@@ -833,7 +833,7 @@ async function adminAct(a: string, v?: string) {
     case 'aclose': stack.pop(); ui.acode = ''; return render();
     case 'alogin': return adminLogin();
     case 'aexit': return exitAdmin();
-    case 'anav': { while (stack.length && stack[stack.length - 1].n.startsWith('a') && stack[stack.length - 1].n !== 'aLogin') stack.pop(); stack.pop(); stack.push({ n: ADMIN_ROOT[v!] }); render(true); return; }
+    case 'anav': { while (stack.length && stack[stack.length - 1].n.startsWith('a') && stack[stack.length - 1].n !== 'aLogin') stack.pop(); stack.push({ n: ADMIN_ROOT[v!] }); render(true); return; }
     case 'go': if (v === 'T') { ui.rtab = 2; return goA('aR', 2); } if (v === 'R') ui.rtab = 0; if (v === 'G') { ui.gcur = ui.gnew = ui.grep = ''; ui.gerr = ''; } if (v === 'M') { ui.mprice = ui.mdays = undefined; } if (v === 'L') { ui.ltext = ''; } return goA('a' + v);
     case 'qtab': ui.qtab = Number(v); return render();
     case 'qopen': return goA('aH', v);

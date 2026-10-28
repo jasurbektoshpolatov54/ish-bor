@@ -162,7 +162,7 @@ ${anav('y')}`;
 /* G. Kod */
 export interface CodeVM { clock: string; ok: boolean[]; ready: boolean; err?: string }
 export const code = (v: CodeVM) => `${bg}
-${xhdr('Kirish kodi', undefined, v.clock)}
+${xhdr('Kirish kodi', undefined, v.clock, 'back')}
 ${rings(I('shield', 2), '', 'goldav')}
 <div class="h1" style="margin-top:-4px">Kodni <span style="color:var(--tileic)">o‘zgartirish</span></div>
 <div class="sub" style="margin-top:4px">Yangi kod 12 belgi: raqam va harf</div>
