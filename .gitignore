@@ -1,0 +1,8 @@
+node_modules/
+dist/
+tests/e2e/out/
+tests/visual/out/
+*.log
+*.jks
+*.keystore
+signing.properties

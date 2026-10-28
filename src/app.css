@@ -1,0 +1,22 @@
+/* Ilova uchun moslashlar: maket CSS’i (mock.css) o‘zgarmaydi, bu yerda faqat telefon ekraniga moslash. */
+html,body{margin:0;padding:0;-webkit-tap-highlight-color:transparent;overscroll-behavior-y:none}
+body{min-height:100dvh;user-select:none;-webkit-user-select:none}
+#app{min-height:100dvh}
+.app .phone{width:100%;max-width:520px;margin:0 auto;min-height:var(--minh,100dvh);overflow:clip;padding-top:env(safe-area-inset-top)}
+.app .phone>.nav{position:sticky;bottom:calc(22px + env(safe-area-inset-bottom));z-index:5}
+.app .phone.has-sheet{height:var(--minh,100dvh);min-height:0;overflow:hidden}
+.app .phone.has-sheet>.dimw{flex:1 1 auto;min-height:0;overflow:hidden}
+.app .phone.has-sheet>.sheet{flex:0 0 auto;max-height:92%;overflow-y:auto;overscroll-behavior:contain}
+.dimw *{pointer-events:none}
+[data-a]{cursor:pointer}
+input,textarea{user-select:text;-webkit-user-select:text}
+.sin,.tin,.fin{background:transparent;border:0;outline:0;padding:0;margin:0;color:var(--text);font:inherit;width:100%;min-width:0;-webkit-appearance:none;appearance:none}
+.sin{font-size:14.5px;flex:1}
+.tin{font-size:15px;font-weight:500;resize:none;min-height:72px;display:block;line-height:1.35}
+.fin{font-size:15px;font-weight:500}
+.fin.v{display:inline-block;font-weight:inherit}
+.sin::placeholder{color:var(--muted);opacity:1}
+.tin::placeholder,.fin::placeholder{color:var(--muted);opacity:.75;font-weight:400}
+.field.err{border-color:var(--danger)}
+@keyframes flashk{0%,100%{box-shadow:none}30%,70%{box-shadow:0 0 0 2px var(--danger)}}
+.flash{animation:flashk .9s ease 1}

@@ -1,0 +1,93 @@
+name: APK
+
+on:
+  push:
+    branches: [main, claude/apk]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Paketlar
+        run: npm ci
+
+      - name: Tekshiruv (typecheck va testlar)
+        run: |
+          npm run typecheck
+          npm test
+
+      - name: Ilovani yig‘ish
+        env:
+          # Nazorat kodi: faqat xeshi ilovaga kiradi, o‘zi hech qayerda chiqmaydi.
+          ADMIN_INITIAL_CODE: ${{ secrets.ADMIN_INITIAL_CODE }}
+        run: |
+          if [ -z "$ADMIN_INITIAL_CODE" ]; then echo "::warning::ADMIN_INITIAL_CODE yo‘q: Nazorat bo‘limi ishlamaydi"; fi
+          npm run build
+          if grep -rqF -- "$ADMIN_INITIAL_CODE" dist && [ -n "$ADMIN_INITIAL_CODE" ]; then echo "Kod ochiq holda topildi!"; exit 1; fi
+          npx cap sync android
+
+      # Imzo kaliti: GitHub sirlarida bo‘lsa o‘shani, bo‘lmasa keshdagi kalitni ishlatadi
+      # (bir xil kalit bo‘lsa, yangi APK eskisining ustidan o‘rnatiladi).
+      - name: Imzo kaliti (kesh)
+        uses: actions/cache@v4
+        with:
+          path: android/app/ishbor-release.jks
+          key: ishbor-signing-v1
+
+      - name: Imzo kaliti
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          cd android/app
+          if [ -n "$KS_B64" ] && [ -n "$KS_PASS" ]; then
+            echo "$KS_B64" | base64 -d > ishbor-release.jks
+            PASS="$KS_PASS"
+          else
+            PASS="ishbor-${{ github.repository_id }}"
+            if [ ! -f ishbor-release.jks ]; then
+              keytool -genkeypair -keystore ishbor-release.jks -alias ishbor -keyalg RSA -keysize 2048 -validity 10000 \
+                -storepass "$PASS" -keypass "$PASS" -dname "CN=Ish bor, O=Ish bor, C=UZ"
+            fi
+          fi
+          printf 'storeFile=ishbor-release.jks\nstorePassword=%s\nkeyAlias=ishbor\nkeyPassword=%s\n' "$PASS" "$PASS" > signing.properties
+
+      - name: APK
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+          cp app/build/outputs/apk/release/app-release.apk ../ish-bor.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ish-bor-apk
+          path: ish-bor.apk
+
+      - name: Yuklab olish havolasi (Release)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="apk-${GITHUB_REF_NAME//\//-}"
+          gh release delete "$TAG" -y --cleanup-tag || true
+          gh release create "$TAG" ish-bor.apk --target "$GITHUB_SHA" --title "Ish bor APK (${GITHUB_REF_NAME}, #${{ github.run_number }})" --notes "Telefonga o‘rnatish uchun ish-bor.apk faylini yuklab oling." --prerelease

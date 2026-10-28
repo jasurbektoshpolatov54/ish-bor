@@ -1,0 +1,26 @@
+// Ilovani brauzerda ochib, asosiy yo‘llarni bosib ko‘radi va xatolarni yig‘adi.
+import { createRequire } from 'node:module';
+const { chromium } = createRequire(import.meta.url)(process.env.PW || 'playwright');
+import { createServer } from 'vite';
+const out = process.argv[2] || 'tests/e2e/out';
+const srv = await createServer({ server: { port: 5199 }, logLevel: 'error' });
+await srv.listen();
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+const errs = [];
+p.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
+p.on('console', (m) => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
+const answers = ['Jasur Toshpo‘latov', '+998901234567'];
+p.on('dialog', async (d) => { const a = answers.shift(); if (d.type() === 'prompt') await d.accept(a ?? ''); else await d.accept(); });
+await p.goto('http://localhost:5199/');
+await p.waitForTimeout(1500);
+const fs = await import('node:fs'); fs.mkdirSync(out, { recursive: true });
+const shot = async (n) => { await p.waitForTimeout(250); await p.screenshot({ path: `${out}/${n}.png`, fullPage: true }); };
+await shot('01-home');
+const tap = async (sel) => { const el = p.locator(sel).first(); if (await el.count()) await el.click(); else errs.push('topilmadi: ' + sel); };
+await tap('[data-a="nav"][data-v="list"]'); await shot('02-list');
+await tap('[data-a="nav"][data-v="post"]'); await shot('05-post');
+await tap('[data-a="nav"][data-v="profile"]'); await shot('08-profile');
+await tap('[data-a="nav"][data-v="home"]');
+console.log(errs.length ? errs.join('\n') : 'XATO YO‘Q');
+await b.close(); await srv.close();
