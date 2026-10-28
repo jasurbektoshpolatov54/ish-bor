@@ -11,11 +11,12 @@ import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { SpeechRecognition } from '@capacitor-community/speech-recognition';
 import { toCyrText } from '../ui/cyr';
+import { toRuText } from '../ui/ru';
 
 export const native = Capacitor.isNativePlatform();
-let cyr = false;
-export const setScript = (c: boolean) => { cyr = c; };
-const t = (s: string) => (cyr ? toCyrText(s) : s);
+let cyr = false, ru = false;
+export const setScript = (s: 'lat' | 'cyr' | 'ru') => { cyr = s === 'cyr'; ru = s === 'ru'; };
+const t = (s: string) => (cyr ? toCyrText(s) : ru ? toRuText(s) : s);
 
 export async function prompt(title: string, message: string, value = '', input: 'text' | 'tel' = 'text'): Promise<string | null> {
   if (native) {
@@ -57,16 +58,18 @@ export async function open(url: string) {
   else window.open(url, '_blank');
 }
 
-export async function locate(): Promise<{ lat: number; lng: number } | null> {
-  try {
-    if (native) {
-      const p = await Geolocation.requestPermissions().catch(() => null);
-      if (p && p.location === 'denied') return null;
-      const r = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 15000 });
-      return { lat: r.coords.latitude, lng: r.coords.longitude };
+/** null — ruxsat berilmadi; 'fail' — joy aniqlanmadi (GPS o‘chiq yoki signal yo‘q) */
+export async function locate(): Promise<{ lat: number; lng: number } | null | 'fail'> {
+  if (native) {
+    const p = await Geolocation.requestPermissions().catch(() => null);
+    if (p && p.location === 'denied') return null;
+    // Avval GPS, bino ichida chiqmasa — tarmoq orqali (tezroq, aniqligi kamroq)
+    for (const o of [{ enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }, { enableHighAccuracy: false, timeout: 12000, maximumAge: 600000 }]) {
+      try { const r = await Geolocation.getCurrentPosition(o); return { lat: r.coords.latitude, lng: r.coords.longitude }; } catch { /* keyingisi */ }
     }
-    return await new Promise((res) => navigator.geolocation.getCurrentPosition((r) => res({ lat: r.coords.latitude, lng: r.coords.longitude }), () => res(null), { timeout: 15000 }));
-  } catch { return null; }
+    return 'fail';
+  }
+  return new Promise((res) => navigator.geolocation.getCurrentPosition((r) => res({ lat: r.coords.latitude, lng: r.coords.longitude }), (e) => res(e.code === 1 ? null : 'fail'), { timeout: 15000 }));
 }
 
 /* Bildirishnomalar (bot xabarlari o‘rnida) */
@@ -79,6 +82,10 @@ export async function notifyInit(onOpen: (p?: string, action?: string, extra?: R
     await LocalNotifications.registerActionTypes({ types: [
       { id: 'yesno', actions: [{ id: 'ha', title: 'Ha' }, { id: 'yoq', title: 'Yo‘q' }] },
       { id: 'yesno_c', actions: [{ id: 'ha', title: 'Ҳа' }, { id: 'yoq', title: 'Йўқ' }] },
+      { id: 'keep', actions: [{ id: 'tursin', title: 'Tursin' }, { id: 'yangila', title: 'Yangilash' }, { id: 'ochir', title: 'O‘chirish' }] },
+      { id: 'keep_c', actions: [{ id: 'tursin', title: 'Турсин' }, { id: 'yangila', title: 'Янгилаш' }, { id: 'ochir', title: 'Ўчириш' }] },
+      { id: 'yesno_r', actions: [{ id: 'ha', title: 'Да' }, { id: 'yoq', title: 'Нет' }] },
+      { id: 'keep_r', actions: [{ id: 'tursin', title: 'Оставить' }, { id: 'yangila', title: 'Обновить' }, { id: 'ochir', title: 'Удалить' }] },
     ] });
     await LocalNotifications.addListener('localNotificationActionPerformed', (e) => {
       const ex = (e.notification.extra || {}) as Record<string, string>;
@@ -86,13 +93,13 @@ export async function notifyInit(onOpen: (p?: string, action?: string, extra?: R
     });
   } catch { /* bildirishnoma bo‘lmasa ilova baribir ishlaydi */ }
 }
-export async function notify(title: string, body: string, extra: Record<string, string> = {}, yesno = false, at?: number, id?: number) {
+export async function notify(title: string, body: string, extra: Record<string, string> = {}, yesno: boolean | 'keep' = false, at?: number, id?: number) {
   const nid = id ?? notifyId++;
   if (!native) { console.info('[bildirishnoma]', title, body, extra); return nid; }
   try {
     await LocalNotifications.schedule({ notifications: [{
       id: nid, title: t(title), body: t(body), extra,
-      actionTypeId: yesno ? (cyr ? 'yesno_c' : 'yesno') : undefined,
+      actionTypeId: yesno ? `${yesno === 'keep' ? 'keep' : 'yesno'}${cyr ? '_c' : ru ? '_r' : ''}` : undefined,
       schedule: at ? { at: new Date(at), allowWhileIdle: true } : undefined,
       smallIcon: 'ic_stat_ishbor',
     }] });

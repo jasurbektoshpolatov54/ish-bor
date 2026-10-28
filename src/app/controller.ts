@@ -7,10 +7,12 @@ import * as U from '../views/user';
 import * as AD from '../views/admin';
 import { bg, row, I, esc, raw, lc, A } from '../ui/kit';
 import { toCyrDom } from '../ui/cyr';
+import { toRuDom, setRuPlaces } from '../ui/ru';
 import * as N from './native';
 import { db, load, save, flush, now, uid, me, owner, userById, listingById, isAdminPhone, audit, note, outbox, myListings, replace, TEST_BUILD, ADMIN, ensureAdmin } from './store';
+import { REGIONS } from '../core/places';
 import { freshDB, PAY_APPS, RADII, TRAITS, REASONS, REJECT_REASONS, JOB_TYPES } from '../core/seed';
-import { search, title, jobIcon, jobName, isTop, suspicious, complaintTrigger, closeAt, pauseTop, resumeTop, extendTop, genderLabel, nearestDistrict, norm, personTitle, isPublic, codeRules } from '../core/rules';
+import { search, title, jobIcon, jobName, isTop, suspicious, complaintTrigger, closeAt, pauseTop, resumeTop, extendTop, genderLabel, nearestDistrict, keepStep, norm, personTitle, isPublic, codeRules } from '../core/rules';
 import { money, dayStart, DAY_MS, hhmm, weekday, dmy, normPhone, maskPhone, fullDate, ago } from '../core/format';
 import { pbkdf2, randomSalt, same } from '../core/crypto';
 import { lcFor, lcMine, payText, haqLabel, letter, payOn, radiusSub, traitTags, jobsLong, statusTags, whenText, daysText, locText } from './vm';
@@ -42,15 +44,28 @@ const go = (n: string, p?: any) => { stack.push({ n, p }); sheetS = null; render
 const swap = (n: string, p?: any) => { stack[stack.length - 1] = { n, p }; sheetS = null; render(true); };
 const reset = (n: string, p?: any) => { stack = [{ n, p }]; sheetS = null; render(true); };
 const openSheet = (n: string, p?: any) => { sheetS = { n, p }; render(); };
-const closeSheet = () => { sheetS = null; render(); };
+const closeSheet = () => { const r = pickResolve; pickResolve = null; sheetS = sheetS?.n === 'pick' ? sheetS.p.prev || null : null; render(); r?.(-1); };
+/** Ro‘yxatdan tanlash ilovaning o‘z oynasida (orqaga tugmasi bilan yopiladi). Tanlanmasa -1. */
+let pickResolve: ((i: number) => void) | null = null;
+function choose(title: string, options: string[], icon = 'chev'): Promise<number> {
+  pickResolve?.(-1);
+  return new Promise((res) => { pickResolve = res; sheetS = { n: 'pick', p: { title, options, icon, prev: sheetS?.n === 'pick' ? sheetS.p.prev : sheetS } }; render(); });
+}
 function back() {
   if (sheetS) return closeSheet();
+  if (cur().n === 'region' && cur().p.vil && !cur().p.q) { cur().p.vil = undefined; return render(); }
   if (stack.length > 1) { const top = stack.pop()!; if (top.n === 'aLogin') ui.acode = ''; render(true); return; }
   const t = Date.now();
   if (t - lastBack < 1500) { void App.exitApp(); return; }
   lastBack = t;
   if (cur().n !== 'home' && !cur().n.startsWith('a')) reset('home');
 }
+let ruMap: Record<string, string> | undefined, ruLen = 0;
+const ruPlaces = () => {
+  if (!ruMap || ruLen !== db.districts.length) { ruMap = {}; ruLen = db.districts.length; for (const d of db.districts) if (d.ru) ruMap[d.name] = d.ru; for (const r of REGIONS) ruMap[r.name] = r.ru; }
+  return ruMap;
+};
+const vilOf = (n?: string) => db.districts.find((d) => d.name === n)?.region;
 const usernameless = (u?: User) => !u?.username;
 const phoneLocked = () => usernameless(me());
 const flash = (sel: string) => {
@@ -114,7 +129,7 @@ function screenHtml(s: Scr): string {
     }
     case 'profile': {
       const sub = u?.username ? `@${u.username}${u.district ? ' · ' + u.district : ''}` : u?.district || 'Hudud tanlanmagan';
-      return U.profile({ letter: letter(u), name: u?.name || 'Telegram ismingiz', sub, mine: u ? myListings(u).map(lcMine) : [], cyr: u?.script === 'cyr', theme: themeName(u?.theme || 'dark'), admin: isAdminPhone(u) });
+      return U.profile({ letter: letter(u), name: u?.name || 'Telegram ismingiz', sub, mine: u ? myListings(u).map(lcMine) : [], script: u?.script || 'lat', theme: themeName(u?.theme || 'dark'), admin: isAdminPhone(u) });
     }
     case 'tarif': {
       const l = listingById(s.p)!;
@@ -130,8 +145,10 @@ function screenHtml(s: Scr): string {
     case 'region': {
       const r = s.p;
       const q = norm(r.q || '');
-      const ds = db.districts.filter((d) => d.enabled).sort((a, b) => a.name.localeCompare(b.name, 'uz'));
-      return U.region({ q: esc(r.q || ''), districts: ds.filter((d) => !q || norm(d.name).includes(q)).map((d) => [d.name, r.district === d.name]), radius: r.radius, denied: r.denied, ready: !!r.district && r.radius != null });
+      const ds = db.districts.filter((d) => d.enabled && (q ? norm(d.name).includes(q) || (!!d.ru && norm(d.ru).includes(q)) : d.region === r.vil)).sort((a, b) => a.name.localeCompare(b.name, 'uz'));
+      const regName = (id?: string) => REGIONS.find((x) => x.id === id)?.name || 'Boshqa';
+      const regions = !q && !r.vil ? REGIONS.filter((g) => db.districts.some((d) => d.enabled && d.region === g.id)).map((g) => [g.id, g.name] as [string, string]) : undefined;
+      return U.region({ q: esc(r.q || ''), regions, vil: !q && r.vil ? regName(r.vil) : undefined, districts: ds.map((d) => [d.name, r.district === d.name, q ? regName(d.region) : undefined]), radius: r.radius, denied: r.denied, ready: !!r.district && r.radius != null });
     }
     case 'mybor': {
       const l = listingById(s.p)!;
@@ -142,9 +159,11 @@ function screenHtml(s: Scr): string {
     case 'mykerak': {
       const l = listingById(s.p)!;
       const o = userById(l.owner);
-      const st = statusTags(l).filter(([x]) => x !== 'Faol').map(([x, c]) => `<span class="tag ${c || ''}">${x}</span>`);
+      const e = kedit(l);
+      const shown = { ...l, ...e } as Listing;
+      const st = statusTags(shown).filter(([x]) => x !== 'Faol').map(([x, c]) => `<span class="tag ${c || ''}">${x}</span>`);
       if (isTop(l, t)) st.push(`<span class="tag blue">${I('bolt')}TOP · ${Math.ceil((l.topUntil! - t) / DAY_MS)} kun</span>`);
-      return U.myKerak({ letter: letter(o), name: o?.surname ? `${o.name} ${o.surname}` : o?.name || '', jobs: jobsLong(l), status: st, busy: !!l.busy, district: l.district, radius: radiusSub(l), days: daysText(l), closed: l.status === 'yopilgan' || l.status === 'rad_etilgan', topOn: isTop(l, t), payOn: payOn() });
+      return U.myKerak({ letter: letter(o), name: o?.surname ? `${o.name} ${o.surname}` : o?.name || '', jobs: jobsLong(l), status: st, busy: !!e.busy, district: e.district, radius: radiusSub(shown), days: daysText(shown), closed: l.status === 'yopilgan' || l.status === 'rad_etilgan', topOn: isTop(l, t), payOn: payOn() });
     }
     case 'pay': {
       const l = listingById(s.p.id)!;
@@ -161,6 +180,11 @@ function screenHtml(s: Scr): string {
   }
 }
 
+/** “Mening e’lonim · Ish kerak”dagi o‘zgarishlar “Saqlash” bosilguncha shu yerda turadi */
+function kedit(l: Listing) {
+  if (!ui.kedit || ui.kedit.id !== l.id) ui.kedit = { id: l.id, busy: !!l.busy, district: l.district, lat: l.lat, lng: l.lng, radius: l.radius, days: [...l.days] };
+  return ui.kedit as { id: string; busy: boolean; district: string; lat: number; lng: number; radius: number; days: number[] };
+}
 const count = (k: Kind) => db.listings.filter((l) => l.kind === k && isPublic(db, l, now())).length;
 const complainedBy = (l: Listing, u?: User) => !!u && db.complaints.some((c) => c.listingId === l.id && c.by === u.id);
 const leftText = (ms: number) => (ms < DAY_MS ? 'bugun tugaydi' : `${Math.ceil(ms / DAY_MS)} kun qoldi`);
@@ -203,12 +227,14 @@ function sheetHtml(under: string, s: Scr): string {
     }
     case 'amount': {
       const quick = p.kind === 'soat' ? ['20 000', '30 000', '40 000', '50 000', '60 000'] : ['100 000', '150 000', '200 000', '250 000', '300 000'];
-      return U.amountSheet(under, { title: p.kind === 'soat' ? 'Soatlik haq' : 'Kunlik haq', amount: money(Number(p.v || 0)), quick });
+      return U.amountSheet(under, { title: p.kind === 'soat' ? 'Soatlik haq' : 'Mehnat haqqi', amount: money(Number(p.v || 0)), quick });
     }
     case 'extra': return U.extraSheet(under, { text: esc(p.text || ''), count: (p.text || '').length, mic: N.canRecord(), rec: p.rec, voice: p.voice ? `0:${String(p.voiceSec || 0).padStart(2, '0')}` : undefined, ready: !!(p.text || '').trim() || !!p.voice });
     case 'theme': return U.themeSheet(under, p.v, autoName());
     case 'fjob': return U.jobSheet(under, activeJobs().map((j) => ({ ...j, on: (p.v as string[]).includes(j.id) })));
     case 'fgender': return U.genderSheet(under, p.v);
+    case 'kdays': return U.daysSheet(under, [0, 1, 2, 3, 4, 5, 6].map((i) => (p.v as number[]).includes(i)));
+    case 'pick': return U.pickSheet(under, esc(p.title), p.options.map((o: string) => esc(o)), p.icon);
   }
   return under;
 }
@@ -246,7 +272,7 @@ function adminHtml(s: Scr): string {
     case 'aLogin': {
       const a = db.admin;
       const locked = a?.lockUntil && a.lockUntil > t ? mmss(a.lockUntil - t) : undefined;
-      return AD.login({ script: me()?.script === 'cyr' ? 'Кирилл' : 'Lotin', theme: themeName(me()?.theme || 'dark'), filled: (ui.acode || '').length, left: Math.max(0, db.settings.maxAttempts - (a?.fails || 0)), locked, err: ui.aerr });
+      return AD.login({ script: me()?.script === 'cyr' ? 'Кирилл' : me()?.script === 'ru' ? 'Русский' : 'Lotin', theme: themeName(me()?.theme || 'dark'), filled: (ui.acode || '').length, left: Math.max(0, db.settings.maxAttempts - (a?.fails || 0)), locked, err: ui.aerr });
     }
     case 'aB': {
       const ds = dayStart(t);
@@ -432,7 +458,9 @@ export function render(scrollTop = false) {
   const tpl = document.createElement('div');
   tpl.innerHTML = `<div class="${cls}" id="s-${s.n}">${html}</div>`;
   if (u?.script === 'cyr') toCyrDom(tpl);
-  N.setScript(u?.script === 'cyr');
+  if (u?.script === 'ru' && !/^a[A-Z]/.test(s.n)) { setRuPlaces(ruPlaces()); toRuDom(tpl); } // Nazorat o‘zbekcha qoladi
+  N.setScript(u?.script || 'lat');
+  root.classList.toggle('ru', u?.script === 'ru');
   const next = tpl.firstElementChild as HTMLElement;
   if (!root.firstElementChild) root.appendChild(next);
   else morphdom(root.firstElementChild, next, {
@@ -479,6 +507,7 @@ async function act(a: string, v: string | undefined, el: HTMLElement) {
   switch (a) {
     case 'back': return back();
     case 'close': return closeSheet();
+    case 'pickv': { const r = pickResolve; pickResolve = null; const prev = sheetS?.p?.prev; sheetS = prev || null; render(); r?.(Number(v)); return; }
     case 'nav':
       if (v === 'post') return startPost();
       return reset(v === 'list' ? 'list' : v === 'profile' ? 'profile' : 'home');
@@ -490,7 +519,7 @@ async function act(a: string, v: string | undefined, el: HTMLElement) {
       if (r) { ui.q = r; ui.page = 1; if (cur().n !== 'list') reset('list'); else render(); }
       return;
     }
-    case 'region': return go('region', { target: 'search', q: '', district: u.district, lat: u.lat, lng: u.lng, radius: u.radius });
+    case 'region': return go('region', { target: 'search', q: '', vil: vilOf(u.district), district: u.district, lat: u.lat, lng: u.lng, radius: u.radius });
     case 'fjob': return openSheet('fjob', { v: [...ui.fjobs] });
     case 'fgender': return openSheet('fgender', { v: ui.fgender });
     case 'fj': { const p = sheetS!.p; p.v = p.v.includes(v) ? p.v.filter((x: string) => x !== v) : [...p.v, v]; return render(); }
@@ -499,7 +528,7 @@ async function act(a: string, v: string | undefined, el: HTMLElement) {
     case 'fg': sheetS!.p.v = v; return render();
     case 'fgok': ui.fgender = sheetS!.p.v; ui.page = 1; return closeSheet();
     case 'open': return openListing(v!);
-    case 'mine': { const l = listingById(v)!; return go(l.kind === 'bor' ? 'mybor' : 'mykerak', l.id); }
+    case 'mine': { const l = listingById(v)!; ui.kedit = undefined; return go(l.kind === 'bor' ? 'mybor' : 'mykerak', l.id); }
     case 'map': { const l = listingById(s.p)!; return N.open(`https://maps.google.com/?q=${l.lat},${l.lng}`); }
     case 'call': {
       const l = listingById(s.p)!; const o = userById(l.owner);
@@ -536,7 +565,7 @@ async function act(a: string, v: string | undefined, el: HTMLElement) {
     }
     case 'paddr': {
       const d = draft(); const x = d.kind === 'bor' ? d.bor : d.kerak;
-      return go('region', { target: d.kind, q: '', district: x.district ?? u.district, lat: x.district ? x.lat : u.lat, lng: x.district ? x.lng : u.lng, radius: x.radius });
+      return go('region', { target: d.kind, q: '', vil: vilOf(x.district ?? u.district), district: x.district ?? u.district, lat: x.district ? x.lat : u.lat, lng: x.district ? x.lng : u.lng, radius: x.radius });
     }
     case 'pwhen': { const b = draft().bor; return openSheet('when', whenInit(b.when)); }
     case 'pextra': { const k = draft().kerak; return openSheet('extra', { target: 'post', text: k.extra, voice: k.voice, voiceSec: k.voiceSec }); }
@@ -577,17 +606,18 @@ async function act(a: string, v: string | undefined, el: HTMLElement) {
     case 'eok': return extraOk();
     case 'play': { const dU = await N.loadVoice(v!); if (dU) N.play(dU); return; }
     /* hudud */
+    case 'vil': s.p.vil = v; render(); return window.scrollTo(0, 0);
     case 'district': s.p.district = v; s.p.lat = undefined; s.p.lng = undefined; return render();
     case 'radius': s.p.radius = Number(v); return render();
     case 'locate': {
       const p = await N.locate();
-      if (!p) { s.p.denied = true; return render(); }
+      if (!p || p === 'fail') { s.p.denied = p ? 'fail' : true; return render(); }
       const d = nearestDistrict(db, p.lat, p.lng);
-      s.p.district = d.name; s.p.lat = p.lat; s.p.lng = p.lng; s.p.denied = false; return render();
+      s.p.district = d.name; s.p.vil = d.region; s.p.lat = p.lat; s.p.lng = p.lng; s.p.denied = false; return render();
     }
     case 'rpick': return pickRegion();
     /* profil */
-    case 'script': u.script = v === 'cyr' ? 'cyr' : 'lat'; save(); return render();
+    case 'script': u.script = v === 'cyr' || v === 'ru' ? v : 'lat'; save(); return render();
     case 'theme': return openSheet('theme', { v: u.theme || 'dark' });
     case 'tpick': sheetS!.p.v = v; return render();
     case 'tok': u.theme = sheetS!.p.v; save(); return closeSheet();
@@ -595,7 +625,21 @@ async function act(a: string, v: string | undefined, el: HTMLElement) {
     case 'hq': { const i = Number(v); ui.open = ui.open.includes(i) ? ui.open.filter((x: number) => x !== i) : [...ui.open, i]; return render(); }
     case 'ask': return askBot();
     case 'found': return foundIt(v || s.p);
-    case 'busy': return toggleBusy(v || s.p);
+    case 'busy': if (s.n === 'mykerak' && !v) { const e = kedit(listingById(s.p)!); e.busy = !e.busy; return render(); } return toggleBusy(v || s.p);
+    case 'kaddr': { const e = kedit(listingById(s.p)!); return go('region', { target: 'kedit', q: '', vil: vilOf(e.district), district: e.district, lat: e.lat, lng: e.lng, radius: e.radius }); }
+    case 'kdays': return openSheet('kdays', { v: [...kedit(listingById(s.p)!).days] });
+    case 'kday': { const p = sheetS!.p; const i = Number(v); p.v = p.v.includes(i) ? p.v.filter((x: number) => x !== i) : [...p.v, i]; return render(); }
+    case 'kdaysok': kedit(listingById(s.p)!).days = sheetS!.p.v; return closeSheet();
+    case 'ksave': {
+      const l = listingById(s.p)!; const e = kedit(l);
+      l.busy = e.busy; l.district = e.district; l.lat = e.lat; l.lng = e.lng; l.radius = e.radius; l.days = e.days;
+      ui.kedit = undefined; save(); N.haptic.ok(); stack.pop(); return render(true);
+    }
+    case 'ldel': {
+      const l = listingById(s.p)!;
+      if (!(await N.confirm('E’lonni o‘chirish', 'E’loningiz butunlay o‘chiriladi. Ishonchingiz komilmi?'))) return;
+      deleteListing(l); N.haptic.ok(); stack.pop(); return render(true);
+    }
     case 'repost': return repost(v || s.p);
     case 'top': return go('tarif', v || s.p);
     case 'topgo': return go('pay', { id: s.p, app: u.lastPayApp || 'payme', state: 'tanlash' });
@@ -636,7 +680,7 @@ function openListing(id: string) {
   const l = listingById(id);
   const u = me();
   if (!l) return;
-  if (l.owner === u?.id) return go(l.kind === 'bor' ? 'mybor' : 'mykerak', id);
+  if (l.owner === u?.id) { ui.kedit = undefined; return go(l.kind === 'bor' ? 'mybor' : 'mykerak', id); }
   l.views++; save();
   return go(l.kind === 'bor' ? 'bor' : 'kerak', id);
 }
@@ -651,7 +695,7 @@ function whenInit(t?: number) {
 async function pickDate(): Promise<number | undefined> {
   const t = now();
   const days = Array.from({ length: 58 }, (_, i) => dayStart(t) + (i + 3) * DAY_MS);
-  const i = await N.choose('Boshqa kun', days.map((d) => `${dmy(d)}, ${['dushanba', 'seshanba', 'chorshanba', 'payshanba', 'juma', 'shanba', 'yakshanba'][weekday(d)]}`));
+  const i = await choose('Boshqa kun', days.map((d) => `${dmy(d)}, ${['dushanba', 'seshanba', 'chorshanba', 'payshanba', 'juma', 'shanba', 'yakshanba'][weekday(d)]}`), 'cal');
   return i >= 0 ? days[i] : undefined;
 }
 
@@ -677,6 +721,7 @@ function pickRegion() {
   const s = cur(); const p = s.p; const u = me()!;
   const d = db.districts.find((x) => x.name === p.district)!;
   const lat = p.lat ?? d.lat, lng = p.lng ?? d.lng;
+  if (p.target === 'kedit') { const e = ui.kedit; if (e) { e.district = p.district; e.lat = lat; e.lng = lng; e.radius = p.radius; } stack.pop(); return render(true); }
   if (p.target === 'search') { u.district = p.district; u.lat = p.lat; u.lng = p.lng; u.radius = p.radius; ui.page = 1; }
   else { const dr = draft(); const x = p.target === 'bor' ? dr.bor : dr.kerak; x.district = p.district; x.lat = lat; x.lng = lng; x.radius = p.radius; if (!u.district) { u.district = p.district; u.radius = p.radius; } }
   save();
@@ -747,6 +792,13 @@ async function sendComplaint() {
   swap('thanks');
 }
 
+/** E’lonni butunlay o‘chiradi (ma’lumot to‘planib qolmasin) */
+function deleteListing(l: Listing) {
+  db.listings = db.listings.filter((x) => x.id !== l.id);
+  db.complaints = db.complaints.filter((c) => c.listingId !== l.id);
+  save();
+}
+
 function foundIt(id: string) {
   const l = listingById(id)!; const t = now();
   l.status = 'yopilgan'; l.closedAt = t; pauseTop(l, t); save(); N.haptic.ok();
@@ -797,7 +849,8 @@ function payResult(pid: string, ok: boolean) {
   const p = db.payments.find((x) => x.id === pid);
   if (!p || p.status !== 'kutilmoqda') return;
   const t = now();
-  const l = listingById(p.listingId)!;
+  const l = listingById(p.listingId);
+  if (!l) { p.status = 'otmadi'; save(); return; }
   if (ok) {
     p.status = 'otdi';
     extendTop(l, p.days, t);
@@ -883,13 +936,13 @@ async function adminAct(a: string, v?: string) {
     }
     case 'excel': return exportExcel();
     case 'uwarn': return warnUser(s.p);
-    case 'uhide': { const ls = db.listings.filter((l) => l.owner === s.p && l.status === 'faol'); const i = await N.choose('Yashirish', ['1 kun', '3 kun', '5 kun']); if (i < 0) return; ls.forEach((l) => { l.status = 'yashirin'; l.hiddenUntil = t + [1, 3, 5][i] * DAY_MS; }); audit(`Odam e’lonlari yashirildi (${[1, 3, 5][i]} kun)`, s.p); save(); return render(); }
+    case 'uhide': { const ls = db.listings.filter((l) => l.owner === s.p && l.status === 'faol'); const i = await choose('Yashirish', ['1 kun', '3 kun', '5 kun']); if (i < 0) return; ls.forEach((l) => { l.status = 'yashirin'; l.hiddenUntil = t + [1, 3, 5][i] * DAY_MS; }); audit(`Odam e’lonlari yashirildi (${[1, 3, 5][i]} kun)`, s.p); save(); return render(); }
     case 'utop': {
       const ls = db.listings.filter((l) => l.owner === s.p && l.status === 'faol');
       if (!ls.length) return N.alert('Faol e’loni yo‘q.');
-      const li = ls.length > 1 ? await N.choose('Qaysi e’lon', ls.map((l) => title(db, l))) : 0;
+      const li = ls.length > 1 ? await choose('Qaysi e’lon', ls.map((l) => title(db, l))) : 0;
       if (li < 0) return;
-      const di = await N.choose('Necha kun', ['1 kun', '3 kun', '7 kun', '14 kun', '30 kun']);
+      const di = await choose('Necha kun', ['1 kun', '3 kun', '7 kun', '14 kun', '30 kun']);
       if (di < 0) return;
       const days = [1, 3, 7, 14, 30][di];
       extendTop(ls[li], days, t); audit(`TOP berildi (qo‘lda, ${days} kun)`, ls[li].id);
@@ -949,7 +1002,7 @@ async function adminAct(a: string, v?: string) {
     case 'qjob': {
       const j = db.jobTypes.find((x) => x.id === v)!;
       const used = db.listings.some((l) => l.jobs.includes(j.id));
-      const i = await N.choose(j.name, [j.hidden ? 'Ko‘rsatish' : 'Yashirish', ...(used ? [] : ['O‘chirish'])]);
+      const i = await choose(j.name, [j.hidden ? 'Ko‘rsatish' : 'Yashirish', ...(used ? [] : ['O‘chirish'])]);
       if (i === 0) { j.hidden = !j.hidden; audit(`Ish turi ${j.hidden ? 'yashirildi' : 'ko‘rsatildi'}`, j.name); }
       if (i === 1) { db.jobTypes = db.jobTypes.filter((x) => x.id !== j.id); audit('Ish turi o‘chirildi', j.name); }
       save(); return render();
@@ -958,7 +1011,7 @@ async function adminAct(a: string, v?: string) {
       const n = await N.prompt('Ish turi', 'Yangi ish turi nomi', '');
       if (!n?.trim()) return;
       const icons = ['truck', 'build', 'spark', 'chef', 'leaf', 'wrench', 'dots', 'brief', 'users', 'heart', 'star', 'tag'];
-      const i = await N.choose('Belgi', icons);
+      const i = await choose('Belgi', icons);
       db.jobTypes.splice(db.jobTypes.length - 1, 0, { id: uid('j'), name: n.trim(), icon: icons[Math.max(0, i)] || 'dots' });
       audit('Ish turi qo‘shildi', n.trim()); save(); return render();
     }
@@ -1022,7 +1075,7 @@ async function changeCode() {
 
 async function warnUser(uidv: string, lid?: string) {
   const texts = ['E’loningiz qoidaga to‘g‘ri kelmadi.', 'Ish uchun oldindan pul so‘ramang.', 'Yolg‘on ma’lumot yozmang.', 'Haqoratli so‘z ishlatmang.'];
-  const i = await N.choose('Ogohlantirish', texts);
+  const i = await choose('Ogohlantirish', texts);
   if (i < 0) return;
   note(uidv, `Ogohlantirish: e’loningiz qoidaga to‘g‘ri kelmadi.${i ? ' ' + texts[i] : ''}`);
   audit('Ogohlantirish', uidv, undefined, texts[i]);
@@ -1030,7 +1083,7 @@ async function warnUser(uidv: string, lid?: string) {
   save(); await flushNotes(); render();
 }
 async function blockUser(uidv: string) {
-  const i = await N.choose('Bloklash sababi', REJECT_REASONS);
+  const i = await choose('Bloklash sababi', REJECT_REASONS);
   if (i < 0) return;
   if (!(await N.confirm('Bloklash', 'Ishonchingiz komilmi?'))) return;
   const u = userById(uidv)!;
@@ -1044,7 +1097,7 @@ async function blockUser(uidv: string) {
   render();
 }
 async function rejectListing(lid: string) {
-  const i = await N.choose('Rad etish sababi', REJECT_REASONS);
+  const i = await choose('Rad etish sababi', REJECT_REASONS);
   if (i < 0) return;
   const l = listingById(lid)!;
   const prev = l.status;
@@ -1057,7 +1110,7 @@ async function rejectListing(lid: string) {
   render();
 }
 async function hideListing(lid: string) {
-  const i = await N.choose('Yashirish', ['1 kun', '3 kun', '5 kun']);
+  const i = await choose('Yashirish', ['1 kun', '3 kun', '5 kun']);
   if (i < 0) return;
   const l = listingById(lid)!;
   l.status = 'yashirin'; l.hiddenUntil = now() + [1, 3, 5][i] * DAY_MS;
@@ -1069,7 +1122,7 @@ async function hideListing(lid: string) {
 }
 async function listingMenu(lid: string) {
   const l = listingById(lid)!;
-  const i = await N.choose(title(db, l), ['Yashirish 1/3/5 kun', 'Rad etish', 'Egasini ochish']);
+  const i = await choose(title(db, l), ['Yashirish 1/3/5 kun', 'Rad etish', 'Egasini ochish']);
   if (i === 0) return hideListing(lid);
   if (i === 1) return rejectListing(lid);
   if (i === 2) return goA('aI', l.owner);
@@ -1081,9 +1134,9 @@ async function addDistrict() {
   const coords = await N.prompt('Hudud qo‘shish', 'Markaz: kenglik, uzunlik (masalan 41.31, 69.27). Bo‘sh qoldirsangiz, hozirgi joylashuv olinadi.', '');
   let lat: number | undefined, lng: number | undefined;
   const m = (coords || '').match(/(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)/);
-  if (m) { lat = Number(m[1]); lng = Number(m[2]); } else { const p = await N.locate(); if (p) { lat = p.lat; lng = p.lng; } }
+  if (m) { lat = Number(m[1]); lng = Number(m[2]); } else { const p = await N.locate(); if (p && p !== 'fail') { lat = p.lat; lng = p.lng; } }
   if (lat == null || lng == null) return N.alert('Markaz nuqtasi topilmadi.');
-  db.districts.push({ name: name.trim(), cyr: (cyr || '').trim() || name.trim(), lat, lng, enabled: true });
+  db.districts.push({ name: name.trim(), cyr: (cyr || '').trim() || name.trim(), lat, lng, enabled: true, region: nearestDistrict(db, lat, lng).region });
   audit('Hudud qo‘shildi', name.trim()); save(); render();
 }
 
@@ -1108,10 +1161,16 @@ async function actAs(i: number) {
 }
 
 /* ---------- Vaqt bo‘yicha qoidalar (5.3, 5.4, 4.3, 3.13) ---------- */
+const KEEP_Q = 'E’loningiz tursinmi, yangilaysizmi yoki o‘chirilsinmi?';
+const KEEP_WARN = 'Bugun e’loningizni yangilang, bo‘lmasa kechqurun ro‘yxatdan o‘chib ketadi.';
+const KEEP_BTNS = ['Tursin', 'Yangilash', 'O‘chirish'];
+
 export async function tick() {
   const t = now();
-  for (const l of db.listings) {
+  const gone: Listing[] = [];
+  for (const l of [...db.listings]) {
     const n = (l.notified ||= {});
+    if (N.native) for (const k of ['ks0', 'ks1', 'ks2']) { const at = n[k]; if (at && at <= t && at > (n.keepAsk || 0)) n.keepAsk = at; }
     if (l.status === 'yashirin' && l.hiddenUntil && l.hiddenUntil <= t) { l.status = 'faol'; l.hiddenUntil = undefined; }
     if (l.kind === 'bor' && l.status === 'faol' && l.when && t >= closeAt(l)!) {
       l.status = 'yopilgan'; l.closedAt = t; pauseTop(l, t);
@@ -1131,10 +1190,15 @@ export async function tick() {
       if (l.busy && (l.days.length === 0 || l.days.includes(weekday(t))) && t >= today + 8 * 3600e3 && (n.busyAsk || 0) < today) {
         n.busyAsk = t; note(l.owner, 'Bugun bo‘shmisiz?', ['Ha', 'Yo‘q'], `busy_${l.id}`);
       }
-      const base = l.confirmAt || l.createdAt;
-      if (!l.askedAt && t - base >= db.settings.kerakDays * DAY_MS) { l.askedAt = t; note(l.owner, 'Hali ish qidiryapsizmi?', ['Ha', 'Yo‘q'], `still_${l.id}`); }
-      if (l.askedAt && t - l.askedAt >= 3 * DAY_MS) { l.status = 'yopilgan'; l.closedAt = t; pauseTop(l, t); l.askedAt = undefined; }
+      if (l.keep && t - l.createdAt >= 7 * DAY_MS) l.createdAt = t;
     }
+    const k = keepStep(l, t);
+    if (k === 'delete') { gone.push(l); continue; }
+    if (k) { n.keepAsk = t; note(l.owner, k === 'warn' ? KEEP_WARN : KEEP_Q, KEEP_BTNS, `keep_${l.id}`); }
+  }
+  if (gone.length) {
+    gone.forEach((l) => { db.auto.unshift({ id: uid('a'), at: t, rule: '3 kun yangilanmadi → o‘chirildi', listingId: l.id }); deleteListing(l); });
+    note(gone[0].owner, 'E’loningiz yangilanmagani uchun ro‘yxatdan o‘chirildi. Kerak bo‘lsa, yangi e’lon joylang.');
   }
   const a = db.admin;
   if (a?.lockUntil && a.lockUntil <= t) a.lockUntil = undefined;
@@ -1149,7 +1213,7 @@ export async function flushNotes() {
     const n = outbox.shift()!;
     const to = userById(n.to);
     const who = to && to.id !== db.ownerId ? ` · ${to.name}` : '';
-    const yesno = !!n.btns && n.btns[0] === 'Ha';
+    const yesno = !n.btns ? false : n.btns[0] === 'Ha' ? true : n.btns[0] === 'Tursin' ? 'keep' as const : false;
     await N.notify(`Ish bor${who}`, n.text, { p: n.p || '', to: n.to }, yesno);
   }
 }
@@ -1166,23 +1230,44 @@ function scheduleFuture() {
     const add = (at: number, text: string, p?: string) => { if (at > t && at - t < 60 * DAY_MS) { const nid = id++; scheduled.push(nid); void N.notify('Ish bor', text, { p: p || '', to: l.owner }, false, at - off, nid); } };
     if (l.kind === 'bor' && l.when) add(closeAt(l)!, 'E’loningiz yopildi. Hali kerak bo‘lsa — qayta joylang.', 'my');
     if (l.topUntil && l.topUntil > t) { add(l.topUntil - DAY_MS, 'TOP ertaga tugaydi. Uzaytirasizmi?', `top_${l.id}`); add(l.topUntil, 'TOP muddati tugadi. E’loningiz oddiy tartibda turibdi.'); }
+    // “Tursinmi?” savollari ilova yopiq bo‘lsa ham keladi; keyin ilova ularni qayta yubormaydi (ks0..ks2).
+    const n = (l.notified ||= {});
+    const asks: [number, string][] = l.kind === 'bor'
+      ? [1, 2, 3].map((d) => [dayStart(l.confirmAt || l.createdAt) + d * DAY_MS + 9 * 3600e3, d === 3 ? KEEP_WARN : KEEP_Q] as [number, string])
+      : [[(n.keepAsk || l.confirmAt || l.createdAt) + 3 * DAY_MS, KEEP_Q]];
+    asks.forEach(([at, text], i) => { n['ks' + i] = at; if (at > t && at - t < 60 * DAY_MS) { const nid = id++; scheduled.push(nid); void N.notify('Ish bor', text, { p: `keep_${l.id}`, to: l.owner }, 'keep', at - off, nid); } });
   }
+  save();
 }
 
 function onNotification(p?: string, actionId?: string, extra?: Record<string, string>) {
   if (extra?.to && userById(extra.to) && db.acting !== extra.to) { db.acting = extra.to; save(); }
   const [k, id] = (p || '').split('_');
   if (k === 'busy' && (actionId === 'ha' || actionId === 'yoq')) { const l = listingById(id); if (l && actionId === 'ha') { l.busy = false; save(); } return render(); }
-  if (k === 'still' && (actionId === 'ha' || actionId === 'yoq')) {
+  if (k === 'keep' && actionId && ['tursin', 'yangila', 'ochir'].includes(actionId)) {
     const l = listingById(id);
-    if (l) { if (actionId === 'ha') { l.confirmAt = now(); l.askedAt = undefined; } else { l.status = 'yopilgan'; l.closedAt = now(); } save(); }
+    if (l) keepAnswer(l, actionId);
     return render();
   }
   if (p === 'my') return reset('profile');
   if (k === 'top' && listingById(id)) { stack = [{ n: 'profile' }, { n: 'tarif', p: id }]; return render(true); }
   if (k === 'listing' && listingById(id)) return openListing(id);
-  if ((k === 'busy' || k === 'still') && listingById(id)) { stack = [{ n: 'profile' }, { n: 'mykerak', p: id }]; return render(true); }
+  if (k === 'busy' && listingById(id)) { stack = [{ n: 'profile' }, { n: 'mykerak', p: id }]; return render(true); }
+  if (k === 'keep' && listingById(id)) { const l = listingById(id)!; stack = [{ n: 'profile' }, { n: l.kind === 'bor' ? 'mybor' : 'mykerak', p: id }]; return render(true); }
   reset('home');
+}
+
+/** “Tursin / Yangilash / O‘chirish” javobi */
+function keepAnswer(l: Listing, a: string) {
+  const t = now(); const n = (l.notified ||= {});
+  if (a === 'ochir') { deleteListing(l); return; }
+  if (a === 'yangila') { l.createdAt = t; l.confirmAt = t; n.keepAsk = t; if (l.status === 'yopilgan' && l.kind === 'bor') return save(); }
+  if (a === 'tursin') {
+    if (l.kind === 'kerak') l.keep = true;
+    // Ish beruvchi oxirgi kuni “Tursin” desa ham javob berdi: yana 3 kun turadi.
+    else if (Math.round((dayStart(t) - dayStart(l.confirmAt || l.createdAt)) / DAY_MS) >= 3) l.confirmAt = t;
+  }
+  save();
 }
 
 /* ---------- Boshlash ---------- */
@@ -1190,7 +1275,7 @@ async function firstRun() {
   render();
   let name: string | null = null;
   while (!name || !name.trim()) name = await N.prompt('Ish bor', 'Ismingiz', '');
-  const u: User = { id: 'owner', name: name.trim().replace(/\s+/g, ' ').split(' ')[0], surname: name.trim().split(/\s+/)[1], createdAt: now(), script: navigator.language?.match(/^(ru|uk|be|kk|ky|tg)/) ? 'cyr' : 'lat', theme: 'auto' };
+  const u: User = { id: 'owner', name: name.trim().replace(/\s+/g, ' ').split(' ')[0], surname: name.trim().split(/\s+/)[1], createdAt: now(), script: /^ru/.test(navigator.language || '') ? 'ru' : navigator.language?.match(/^(uk|be|kk|ky|tg)/) ? 'cyr' : 'lat', theme: 'auto' };
   db.users.push(u); db.ownerId = u.id; db.acting = u.id;
   await askPhone(u);
   save(); render(true);

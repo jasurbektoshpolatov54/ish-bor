@@ -1,19 +1,7 @@
 import type { DB, District, JobType, Settings } from './types';
+import { PLACES } from './places';
 
-export const DISTRICTS: District[] = [
-  ['Bektemir', 'Бектемир', 41.209, 69.334],
-  ['Chilonzor', 'Чилонзор', 41.275, 69.204],
-  ['Mirobod', 'Миробод', 41.287, 69.284],
-  ['Mirzo Ulug‘bek', 'Мирзо Улуғбек', 41.338, 69.335],
-  ['Olmazor', 'Олмазор', 41.352, 69.212],
-  ['Sergeli', 'Сергели', 41.227, 69.219],
-  ['Shayxontohur', 'Шайхонтоҳур', 41.326, 69.228],
-  ['Uchtepa', 'Учтепа', 41.292, 69.169],
-  ['Yakkasaroy', 'Яккасарой', 41.283, 69.256],
-  ['Yashnobod', 'Яшнобод', 41.294, 69.336],
-  ['Yangihayot', 'Янгиҳаёт', 41.205, 69.183],
-  ['Yunusobod', 'Юнусобод', 41.364, 69.287],
-].map(([name, cyr, lat, lng]) => ({ name: name as string, cyr: cyr as string, lat: lat as number, lng: lng as number, enabled: true }));
+export const DISTRICTS: District[] = PLACES.map(([name, cyr, ru, region, lat, lng, f]) => ({ name, cyr, ru, region, lat, lng, enabled: true, ...(f & 1 ? { city: true } : {}), ...(f & 2 ? { approx: true } : {}) }));
 
 export const JOB_TYPES: JobType[] = [
   ['yuk', 'Yuk tashish', 'truck'],

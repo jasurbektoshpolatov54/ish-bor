@@ -3,7 +3,7 @@ export type ForWhom = 'erkak' | 'ayol' | 'farqi';
 export type Gender = 'erkak' | 'ayol';
 export type PayType = 'kun' | 'soat' | 'kelishiladi';
 export type Status = 'tekshirilmoqda' | 'faol' | 'yopilgan' | 'rad_etilgan' | 'yashirin' | 'ochirilgan';
-export type Script = 'lat' | 'cyr';
+export type Script = 'lat' | 'cyr' | 'ru';
 export type Theme = 'dark' | 'light' | 'auto';
 
 export interface User {
@@ -65,6 +65,8 @@ export interface Listing {
   closedAt?: number;
   confirmAt?: number;
   askedAt?: number;
+  /** Ishchi “Tursin” degan: e’lon haftada bir o‘zi yangilanadi */
+  keep?: boolean;
   calls: number;
   views: number;
   notified?: Record<string, number>;
@@ -84,7 +86,7 @@ export interface Audit { at: number; action: string; obj?: string; before?: stri
 export interface AutoAct { id: string; at: number; rule: string; listingId: string; undone?: boolean; prev?: Status; }
 export interface LoginLog { at: number; device: string; ok: boolean; }
 export interface JobType { id: string; name: string; icon: string; hidden?: boolean; }
-export interface District { name: string; cyr: string; lat: number; lng: number; enabled: boolean; }
+export interface District { name: string; cyr: string; lat: number; lng: number; enabled: boolean; ru?: string; region?: string; city?: boolean; approx?: boolean }
 
 export interface Settings {
   topPrice: number; topDays: number; complaintThreshold: number; moneyThreshold: number;

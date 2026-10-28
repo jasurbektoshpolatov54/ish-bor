@@ -20,3 +20,7 @@ input,textarea{user-select:text;-webkit-user-select:text}
 .field.err{border-color:var(--danger)}
 @keyframes flashk{0%,100%{box-shadow:none}30%,70%{box-shadow:0 0 0 2px var(--danger)}}
 .flash{animation:flashk .9s ease 1}
+
+/* rus tili: matn uzunroq — teglar qatorga sig‘masa keyingi qatorga o‘tadi */
+.app.ru .lc .bt{flex-wrap:wrap;row-gap:6px}
+.app.ru .tag,.app.ru .lc .tm{white-space:nowrap}

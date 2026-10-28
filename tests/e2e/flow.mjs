@@ -11,7 +11,7 @@ fs.mkdirSync(OUT, { recursive: true });
 const srv = await createServer({ server: { port: 5198 }, logLevel: 'error' });
 await srv.listen();
 const b = await chromium.launch();
-const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, colorScheme: 'dark' });
+const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, colorScheme: 'dark', permissions: ['geolocation'], geolocation: { latitude: 41.275, longitude: 69.204 } });
 const p = await ctx.newPage();
 const errs = []; const log = [];
 p.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
@@ -46,10 +46,26 @@ await tap('psubmit'); // hali tayyor emas: hech narsa bo‘lmasligi kerak
 await expectScreen('post');
 await tap('pjob', 'yuk');
 await fill('[data-in="izoh"]', 'Mebel tashish, 3-qavat');
-await tap('paddr'); await expectScreen('region'); await shot('region');
+await tap('paddr'); await expectScreen('region'); await has('Samarqand viloyati'); await has('Qoraqalpog‘iston'); await shot('region');
+// 4: viloyat → tuman/shahar, orqaga, lokatsiya
+await tap('vil', 'UZ-SA'); await has('Samarqand sh.'); await has('Urgut'); await shot('region-samarqand');
+await tap('back'); await expectScreen('region'); await has('Andijon viloyati');
+await fill('[data-in="rq"]', 'nukus'); await has('Nukus sh.'); await fill('[data-in="rq"]', '');
+for (const [la, lo, want] of [[39.6542, 66.9597, 'Samarqand sh.'], [40.3842, 71.7843, 'Farg‘ona sh.'], [42.46, 59.61, 'Nukus sh.'], [41.275, 69.204, 'Chilonzor']]) {
+  await ctx.setGeolocation({ latitude: la, longitude: lo }); await tap('locate'); await p.waitForTimeout(300);
+  const on = await p.evaluate(() => document.querySelector('.radio.on')?.closest('.row')?.querySelector('b')?.textContent);
+  if (on !== want) errs.push(`lokatsiya ${la},${lo}: kutilgan ${want}, chiqdi ${on}`);
+}
+await shot('region-lokatsiya');
 await tap('district', 'Chilonzor'); await tap('radius', '1'); await shot('region-tanlangan');
 await tap('rpick'); await expectScreen('post');
 await tap('pwhen'); await shot('qachon');
+// 1: boshqa kun oynasi — orqaga qaytadi
+await tap('wother'); await p.waitForTimeout(150); await shot('boshqa-kun');
+if (!(await p.locator('[data-a="pickv"]').count())) errs.push('Boshqa kun: tanlov oynasi chiqmadi');
+await p.locator('.sheet [data-a="close"]').last().click(); await p.waitForTimeout(150);
+if (await p.locator('[data-a="pickv"]').count()) errs.push('Boshqa kun: Bekor qilish yopmadi');
+if (!(await p.locator('[data-a="wok"]').count())) errs.push('Boshqa kun: qachon oynasiga qaytmadi');
 await tap('wday', 'Ertaga'); await tap('whour', '09:00'); await tap('wok');
 await tap('pkim', 'Erkak');
 await tap('ppay', 'kun'); await shot('haq');
@@ -72,11 +88,22 @@ await tap('nav', 'profile'); await expectScreen('profile');
 // Ish kerak e’loni
 await tap('nav', 'post'); await tap('pkind', 'kerak'); await shot('forma-kerak');
 await tap('pjob', 'yuk'); await tap('pjob', 'qurilish'); await tap('pday', '0'); await tap('pday', '1');
-await tap('paddr'); await tap('district', 'Chilonzor'); await tap('radius', '2'); await tap('rpick');
+await tap('paddr'); await expectScreen('region'); await has('Chilonzor'); await tap('district', 'Chilonzor'); await tap('radius', '2'); await tap('rpick');
 await tap('ppay'); await tap('quick', '200 000'); await tap('aok');
 await tap('pgender', 'Erkak'); await tap('ptrait', '1');
 await tap('psubmit'); await expectScreen('done');
 await tap('nav', 'home'); await tap('nav', 'list'); await tap('kind', 'kerak'); await has('200 000'); await shot('elonlar-kerak');
+
+// 3: Ish kerak e’lonini tahrirlash — “Saqlash” bosilmaguncha o‘zgarmaydi
+const openKerak = async () => { await tap('nav', 'profile'); const m = p.locator('[data-a="mine"]'); for (let i = 0; i < await m.count(); i++) { await m.nth(i).click(); await p.waitForTimeout(150); if (await screen() === 's-mykerak') return; await tap('back'); } errs.push('mykerak ochilmadi'); };
+const edit = async () => {
+  await tap('busy'); await tap('kaddr'); await expectScreen('region'); await tap('back'); await expectScreen('region');
+  await tap('vil', 'UZ-SA'); await tap('district', 'Urgut'); await tap('radius', '1'); await tap('rpick'); await expectScreen('mykerak'); await has('Urgut');
+  await tap('kdays'); await tap('kday', '6'); await shot('bosh-kunlari'); await tap('kdaysok'); await has('Du, Se, Ya');
+};
+await openKerak(); await edit(); await shot('kerak-tahrir');
+await tap('back'); await openKerak(); await has('Chilonzor'); if ((await p.locator('#app').innerText()).includes('Urgut')) errs.push('Saqlashsiz o‘zgarish saqlanib qoldi');
+await edit(); await tap('ksave'); await expectScreen('profile'); await openKerak(); await has('Urgut'); await has('Du, Se, Ya'); await tap('back');
 
 // Mavzu va kirill
 await tap('nav', 'profile'); await tap('theme'); await tap('tpick', 'light'); await tap('tok'); await shot('yorug');
@@ -115,6 +142,9 @@ await tap('qopen'); await expectScreen('aH'); await shot('navbat-element'); awai
 // Vaqt: +7 kun → TOP tugaydi, e’lon (ertaga) yopiladi
 await tap('anav', 'y'); await tap('go', 'S'); await tap('shift', '7'); await shot('sinov-7kun');
 await tap('back'); await tap('aexit'); await tap('nav', 'profile'); await has('Tekshirilmoqda'); await shot('profil-7-kundan-keyin');
+// 2a: o‘z e’lonini o‘chirish
+await openKerak(); answers.push(true); await tap('ldel'); await p.waitForTimeout(200); await expectScreen('profile');
+if (await p.evaluate(() => JSON.parse(localStorage.getItem('ishbor_db')).listings.some((l) => l.kind === 'kerak' && l.owner === 'owner'))) errs.push('e’lon o‘chirilmadi');
 
 console.log(log.join('\n'));
 console.log(errs.length ? 'XATOLAR:\n' + errs.join('\n') : 'HAMMASI O‘TDI');

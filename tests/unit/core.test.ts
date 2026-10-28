@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { freshDB } from '../../src/core/seed';
-import { search, suspicious, complaintTrigger, extendTop, isTop, codeRules, title, haversine } from '../../src/core/rules';
+import { keepStep, search, suspicious, complaintTrigger, extendTop, isTop, codeRules, title, haversine } from '../../src/core/rules';
 import { money, dist, dayName, ago, daysLabel, normPhone, maskPhone, dayStart, DAY_MS, hhmm } from '../../src/core/format';
 import { pbkdf2, same } from '../../src/core/crypto';
 import type { Listing, User } from '../../src/core/types';
@@ -124,5 +124,38 @@ describe('xavfsizlik', () => {
     expect(same(h1, h2)).toBe(true);
     expect(same(h1, h3)).toBe(false);
     expect(h1).toHaveLength(64);
+  });
+});
+
+describe('e’lon muddati (7-band)', () => {
+  const H = 3600e3;
+  const d0 = dayStart(T); // 28-oktabr 00:00 (Toshkent)
+  it('ish beruvchi: har kuni bir marta so‘raladi, 3-kuni ogohlantiriladi, 4-kuni o‘chiriladi', () => {
+    const l = bor('b', { createdAt: d0 + 10 * H, when: undefined });
+    expect(keepStep(l, d0 + 20 * H)).toBeUndefined(); // joylangan kuni so‘ralmaydi
+    expect(keepStep(l, d0 + DAY_MS + 8 * H)).toBeUndefined(); // 09:00 gacha kutadi
+    expect(keepStep(l, d0 + DAY_MS + 9 * H)).toBe('ask');
+    l.notified = { keepAsk: d0 + DAY_MS + 9 * H };
+    expect(keepStep(l, d0 + DAY_MS + 15 * H)).toBeUndefined(); // kuniga bir marta
+    expect(keepStep(l, d0 + 2 * DAY_MS + 9 * H)).toBe('ask');
+    l.notified = { keepAsk: d0 + 2 * DAY_MS + 9 * H };
+    expect(keepStep(l, d0 + 3 * DAY_MS + 9 * H)).toBe('warn');
+    l.notified = { keepAsk: d0 + 3 * DAY_MS + 9 * H };
+    expect(keepStep(l, d0 + 3 * DAY_MS + 23 * H)).toBeUndefined(); // 3-kun oxirigacha turadi
+    expect(keepStep(l, d0 + 4 * DAY_MS + 1)).toBe('delete');
+  });
+  it('ish beruvchi yangilasa hisob qaytadan boshlanadi', () => {
+    const l = bor('b', { createdAt: d0, confirmAt: d0 + 3 * DAY_MS + 10 * H });
+    expect(keepStep(l, d0 + 5 * DAY_MS)).toBeUndefined();
+    expect(keepStep(l, d0 + 7 * DAY_MS + 1)).toBe('delete');
+  });
+  it('ishchi: har 3 kunda so‘raladi, o‘zi o‘chmaydi', () => {
+    const l = bor('k', { kind: 'kerak', createdAt: d0 });
+    expect(keepStep(l, d0 + 2 * DAY_MS)).toBeUndefined();
+    expect(keepStep(l, d0 + 3 * DAY_MS)).toBe('ask');
+    l.notified = { keepAsk: d0 + 3 * DAY_MS };
+    expect(keepStep(l, d0 + 5 * DAY_MS)).toBeUndefined();
+    expect(keepStep(l, d0 + 6 * DAY_MS)).toBe('ask');
+    expect(keepStep(l, d0 + 60 * DAY_MS)).toBe('ask');
   });
 });

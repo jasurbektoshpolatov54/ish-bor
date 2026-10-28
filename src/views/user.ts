@@ -10,7 +10,7 @@ export interface HomeVM { letter?: string; name?: string; loc: string; mic: bool
 export const home = (v: HomeVM) => `${bg}
 <div class="greet"><div class="av"${v.letter ? '' : ' style="font-size:0"'}>${v.letter || I('user', 2)}</div><div><small>${v.name ? 'Assalomu alaykum,' : 'Assalomu alaykum!'}</small><b>${v.name || 'Xush kelibsiz'}</b></div></div>
 <div class="h2 mt24" style="font-size:27px;letter-spacing:-.8px;line-height:1.15">Halol mehnat,<br>vositachisiz</div>
-<div class="note mt8" style="font-size:14px">Hammasi bepul. Hech kimga pul to‘lamang.</div>
+<div class="note mt8" style="font-size:14px">E’lon joylash bepul. Ish uchun hech kimga pul to‘lamang.</div>
 <div class="search mt18"${A('search')}>${I('search')}Qidirish${v.mic ? `<div class="loc" style="margin-left:auto;margin-right:6px;padding:0;width:38px;justify-content:center"${A('mic')}>${I('mic')}</div>` : ''}<div class="loc" style="margin-left:${v.mic ? '0' : 'auto'}"${A('region')}>${I('pin')}${v.loc}</div></div>
 <div class="two mt20">
  <div class="bigc g"${A('list', 'bor')}><div class="ic">${I('brief')}</div><b>Ish bor</b><small>Ishchi kerakmi? E’lon bering</small><div class="cnt">${v.cntBor} ta e’lon ${I('chev', 2.2)}</div></div>
@@ -120,7 +120,7 @@ ${row('cal', 'Qachon', v.when + ' ' + I('chev'), undefined, 'pwhen')}
 <div class="days">${['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'].map((d, i) => `<span${v.days![i] ? ' class="on"' : ''}${A('pday', i)}>${d}</span>`).join('')}</div>
 <div class="card mt14">
 ${row('pin', 'Hudud', v.addr + ' ' + I('chev'), v.addrSub, 'paddr')}
-${row('wallet', 'Kunlik haq', v.payDay + ' ' + I('chev'), undefined, 'ppay', 'kun')}
+${row('wallet', 'Mehnat haqqi', v.payDay + ' ' + I('chev'), undefined, 'ppay', 'kun')}
 <div class="row" data-f="kim"><div class="tile">${I('user')}</div><div class="rt"><b>Jinsi</b></div>${segOn(['Erkak', 'Ayol'], v.gender, 'pgender')}</div>
 </div>
 <div class="lbl">O‘zingiz haqingizda <span>(belgilang)</span></div>
@@ -146,7 +146,7 @@ ${spacer(24)}
 <div class="btn gold"${A('nav', 'home')}>Bosh sahifaga</div>`;
 
 /* 3.8 Profil */
-export interface ProfileVM { letter?: string; name: string; sub: string; mine: LcData[]; cyr: boolean; theme: string; admin: boolean }
+export interface ProfileVM { letter?: string; name: string; sub: string; mine: LcData[]; script: string; theme: string; admin: boolean }
 export const profile = (v: ProfileVM) => `${bg}
 <div class="hdr">Profil</div>
 ${rings(v.letter || I('user', 2), '')}
@@ -155,7 +155,7 @@ ${rings(v.letter || I('user', 2), '')}
 <div class="secrow"><b>Mening e’lonlarim</b><span></span></div>
 ${v.mine.length ? v.mine.map(lc).join('\n') : empty('brief', 'Hali e’lon joylamagansiz', 'Pastdagi “+” tugmasini bosing')}
 <div class="card mt16">
-<div class="row"><div class="tile">${I('globe')}</div><div class="rt"><b>Yozuv</b></div>${seg([['Lotin', !v.cyr, 'script', 'lat'], ['Кирилл', v.cyr, 'script', 'cyr']])}</div>
+<div class="row"><div class="tile">${I('globe')}</div><div class="rt"><b>Yozuv</b></div>${seg([['Lotin', v.script === 'lat', 'script', 'lat'], ['Кирилл', v.script === 'cyr', 'script', 'cyr'], ['Русский', v.script === 'ru', 'script', 'ru']])}</div>
 ${row('moon', 'Mavzu', v.theme + ' ' + I('chev'), undefined, 'theme')}
 ${row('help', 'Yordam', I('chev'), undefined, 'help')}
 </div>
@@ -195,16 +195,20 @@ ${spacer()}
 ${v.done ? '<div class="link">Shikoyatingiz qabul qilingan</div>' : `<div class="btn gold"${A('csend')}${offIf(v.reason == null)}>Yuborish</div>`}`;
 
 /* 3.11 Hudud */
-export interface RegionVM { q: string; districts: [string, boolean][]; radius?: number; denied?: boolean; ready: boolean }
+export interface RegionVM { q: string; regions?: [string, string][]; vil?: string; districts: [string, boolean, string?][]; radius?: number; denied?: boolean | 'fail'; ready: boolean }
 export const region = (v: RegionVM) => `${bg}
 ${hdr('Hudud')}
 <div class="big">Qayerda?</div>
 <div class="search mt18">${I('search')}<input class="sin" data-in="rq" placeholder="Tumanni qo‘lda tanlang" value="${v.q}"></div>
 <div class="btn ghost mt12"${A('locate')}>${I('pin')}Lokatsiya orqali aniqlash</div>
-${v.denied ? '<div class="note mt8">Joylashuvga ruxsat berilmadi. Tumanni qo‘lda tanlang.</div>' : ''}
-<div class="card mt14">
-${v.districts.map(([d, on]) => `<div class="row"${A('district', d)}><div class="tile">${I('pin')}</div><div class="rt"><b>${d}</b></div>${radio(on)}</div>`).join('')}
-</div>
+${v.denied ? `<div class="note mt8">${v.denied === 'fail' ? 'Joylashuv aniqlanmadi. Telefonda joylashuv (GPS) yoqilganini tekshiring yoki tumanni qo‘lda tanlang.' : 'Joylashuvga ruxsat berilmadi. Tumanni qo‘lda tanlang.'}</div>` : ''}
+${v.regions ? `<div class="lbl">Viloyat yoki shahar</div>
+<div class="card">
+${v.regions.map(([id, n]) => row('pin', n, I('chev'), undefined, 'vil', id)).join('')}
+</div>` : `${v.vil ? `<div class="lbl">${v.vil}</div>` : ''}
+<div class="card${v.vil ? '' : ' mt14'}">
+${v.districts.map(([d, on, sub]) => `<div class="row"${A('district', d)}><div class="tile">${I('pin')}</div><div class="rt"><b>${d}</b>${sub ? `<small>${sub}</small>` : ''}</div>${radio(on)}</div>`).join('')}
+</div>`}
 <div class="lbl">Qancha masofagacha?</div>
 <div class="chips">${['1–5 km', '5–10 km', '10–20 km', '20–35 km', '35 km dan uzoq'].map((t, i) => chip(t, v.radius === i, 'radius', i)).join('')}</div>
 ${v.radius != null ? '<div class="note mt12">Shu masofa ichidagi e’lonlar ko‘rinadi.</div>' : ''}
@@ -227,7 +231,8 @@ ${row('pin', 'Manzil', v.addr, v.addrSub)}
 <div class="note mt12">Ishchi topilgach “Odam topdim”ni bosing — e’lon qidiruvdan olib tashlanadi, boshqalar bekorga qo‘ng‘iroq qilmaydi.</div>
 ${spacer()}
 ${v.closed ? `<div class="btn gold"${A('repost')}>Qayta joylash</div>` : `<div class="btn gold"${A('found')}>${I('check', 2.4)}Odam topdim</div>
-${v.payOn ? `<div class="btn ghost mt12"${A('top')}>${I('bolt')}${v.topOn ? 'TOPni uzaytirish' : 'TOP qilish'}</div>` : ''}`}`;
+${v.payOn ? `<div class="btn ghost mt12"${A('top')}>${I('bolt')}${v.topOn ? 'TOPni uzaytirish' : 'TOP qilish'}</div>` : ''}`}
+${delBtn}`;
 
 /* 3.13 Mening e’lonim — Ish kerak */
 export interface MyKerakVM { letter: string; name: string; jobs: string; status: string[]; busy: boolean; district: string; radius: string; days: string; closed: boolean; topOn: boolean; payOn: boolean }
@@ -242,12 +247,23 @@ ${v.status.length ? `<div class="ctr mt10">${v.status.join(' ')}</div>` : ''}
 <div class="row"${A('busy')}><div class="tile">${I('clock')}</div><div class="rt"><b>Hozir bandman</b><small>Qidiruvda qolasiz, “Band” deb yoziladi</small></div>${sw(v.busy)}</div>
 </div>
 <div class="card mt12">
-${row('pin', 'Hudud', v.district, v.radius)}
-${row('cal', 'Bo‘sh kunlari', v.days)}
+${row('pin', 'Hudud', v.district + ' ' + I('chev'), v.radius, v.closed ? undefined : 'kaddr')}
+${row('cal', 'Bo‘sh kunlari', v.days + ' ' + I('chev'), undefined, v.closed ? undefined : 'kdays')}
 </div>
 <div class="note mt12">Band bo‘lsangiz ham ish beruvchilar sizni ko‘radi va keyingi kunlarga kelishib olishi mumkin.</div>
 ${spacer()}
-${v.closed ? `<div class="btn gold"${A('repost')}>Qayta joylash</div>` : v.payOn ? `<div class="btn ghost"${A('top')}>${I('bolt')}${v.topOn ? 'TOPni uzaytirish' : 'TOP qilish'}</div>` : ''}`;
+${v.closed ? `<div class="btn gold"${A('repost')}>Qayta joylash</div>` : `<div class="btn gold"${A('ksave')}>${I('check', 2.4)}Saqlash</div>${v.payOn ? `<div class="btn ghost mt12"${A('top')}>${I('bolt')}${v.topOn ? 'TOPni uzaytirish' : 'TOP qilish'}</div>` : ''}`}
+${delBtn}`;
+
+/* E’lonni o‘chirish tugmasi (Mening e’lonim) */
+const delBtn = `<div class="btn ghost mt12" style="color:var(--danger)"${A('ldel')}>E’lonni o‘chirish</div>`;
+
+/* Bo‘sh kunlarini o‘zgartirish (pastdan) */
+export const daysSheet = (under: string, days: boolean[]) => `${bg}${dim(under)}
+${sheet(`${sh('Bo‘sh kunlari')}
+<div class="note" style="padding:0 22px">Bir nechtasini tanlash mumkin</div>
+<div class="days mt14">${['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'].map((d, i) => `<span${days[i] ? ' class="on"' : ''}${A('kday', i)}>${d}</span>`).join('')}</div>
+<div class="btn gold mt18"${A('kdaysok')}>Tayyor</div>`)}`;
 
 /* 3.14 / 3.21 / 3.22 To‘lov */
 export interface PayVM { icon: string; title: string; days: number; price: string; apps: [string, string, string][]; app: string; state: 'tanlash' | 'kutish' | 'otmadi' }
@@ -391,3 +407,9 @@ ${rings(I('wrench', 2), '', 'goldav')}
 
 /** Sinov odami bo‘lib turilganda har oynaning tepasidagi chiziq (13.3) */
 export const testBar = (name: string) => `<div style="height:28px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;color:var(--muted);background:var(--card);border-bottom:1px solid var(--line)">Sinov: ${name} · <span style="color:var(--bluetext);font-weight:600"${A('actown')}>Qaytish</span></div>`;
+
+/* Ro‘yxatdan tanlash (pastdan): sana, sabab va h.k. */
+export const pickSheet = (under: string, title: string, options: string[], icon: string) => `${bg}${dim(under)}
+${sheet(`<div style="display:flex;align-items:center;gap:12px;padding:10px 22px 4px"><div class="back" style="position:static;flex:0 0 auto"${A('close')}>${I('back', 2.2)}</div><div style="font-size:19px;font-weight:700;letter-spacing:-.4px">${title}</div></div>
+<div class="card mt8">${options.map((o, i) => row(icon, o, I('chev'), undefined, 'pickv', i)).join('')}</div>
+<div class="btn ghost mt14"${A('close')}>Bekor qilish</div>`)}`;

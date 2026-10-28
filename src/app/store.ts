@@ -1,6 +1,7 @@
 // LocalApi: hamma ma’lumot telefonning o‘zida (SPEC 13.1).
 import type { DB, Listing, User, Note } from '../core/types';
-import { freshDB } from '../core/seed';
+import { freshDB, DISTRICTS } from '../core/seed';
+import { nearestDistrict } from '../core/rules';
 import { loadText, saveText } from './native';
 
 declare const __ADMIN__: { salt: string; hash: string; iter: number } | null;
@@ -15,7 +16,16 @@ export let db: DB = freshDB();
 export async function load() {
   const s = await loadText(KEY);
   if (s) { try { db = { ...freshDB(), ...JSON.parse(s) }; } catch { db = freshDB(); } }
+  migrateDistricts();
   ensureAdmin();
+}
+/** Oldin faqat Toshkent tumanlari bor edi: butun O‘zbekiston ro‘yxatini qo‘shamiz, yoqilgan/o‘chirilgani saqlanadi. */
+export function migrateDistricts() {
+  if (db.districts.every((d) => d.region)) return;
+  const old = new Map(db.districts.map((d) => [d.name, d]));
+  const own = db.districts.filter((d) => !d.region && !DISTRICTS.some((x) => x.name === d.name));
+  db.districts = DISTRICTS.map((d) => ({ ...d, enabled: old.get(d.name)?.enabled ?? true }));
+  for (const d of own) db.districts.push({ ...d, region: nearestDistrict(db, d.lat, d.lng).region });
 }
 export function ensureAdmin() {
   if (!db.admin && ADMIN) db.admin = { ...ADMIN, fails: 0 };
