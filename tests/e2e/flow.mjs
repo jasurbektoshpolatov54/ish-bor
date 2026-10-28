@@ -113,8 +113,8 @@ await tap('anav', 'n'); await has('Jiddiy'); await shot('navbat-shikoyat');
 await tap('qopen'); await expectScreen('aH'); await shot('navbat-element'); await tap('back');
 
 // Vaqt: +7 kun → TOP tugaydi, e’lon (ertaga) yopiladi
-await tap('anav', 'y'); await tap('go', 'S'); await tap('shift', '7');
-await tap('aexit'); await tap('nav', 'profile'); await has('Yopilgan'); await shot('profil-7-kundan-keyin');
+await tap('anav', 'y'); await tap('go', 'S'); await tap('shift', '7'); await shot('sinov-7kun');
+await tap('back'); await tap('aexit'); await tap('nav', 'profile'); await has('Tekshirilmoqda'); await shot('profil-7-kundan-keyin');
 
 console.log(log.join('\n'));
 console.log(errs.length ? 'XATOLAR:\n' + errs.join('\n') : 'HAMMASI O‘TDI');
