@@ -1,4 +1,4 @@
-// Dizayn rasmlarini HTML’dan qayta chizadi: node design/render.js
+// Dizayn rasmlarini HTML’dan qayta chizadi: node design/render.cjs
 // Natija: design/screens/<to‘plam>/<variant>/<oyna>.png (390 px, 2x)
 const {chromium}=require('playwright');const fs=require('fs');const path=require('path');
 const SETS=[['app.html','namuna'],['app0.html','bosh-holat'],['extra.html','qoshimcha'],['admin.html','nazorat']];
