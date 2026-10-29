@@ -9,7 +9,7 @@ export const RU: Record<string, string> = {
   'Ishonchingiz komilmi?': 'Вы уверены?', 'hozir': 'сейчас', 'kecha': 'вчера', 'kun': 'день', 'so‘m': 'сум', 'Bepul': 'Бесплатно',
   'Assalomu alaykum,': 'Здравствуйте,', 'Assalomu alaykum!': 'Здравствуйте!', 'Xush kelibsiz': 'Добро пожаловать',
   'Halol mehnat,': 'Честный труд,', 'vositachisiz': 'без посредников',
-  'E’lon joylash bepul. Ish uchun hech kimga pul to‘lamang.': 'Подать объявление бесплатно. Никому не платите за работу.',
+  'Bir-biringizni to‘g‘ridan-to‘g‘ri toping.': 'Находите друг друга напрямую.',
   'Ishchi kerakmi? E’lon bering': 'Нужен работник? Подайте объявление', 'Ish qidiryapsizmi? O‘zingizni yozing': 'Ищете работу? Расскажите о себе',
   'Yaqin atrofda': 'Поблизости', 'Hozircha e’lon yo‘q': 'Пока нет объявлений', 'Birinchi bo‘lib e’lon joylang': 'Подайте объявление первым',
   'E’lonlar yo‘q': 'Объявлений нет', 'Bu hududda hozircha e’lon joylanmagan': 'В этом районе пока нет объявлений',

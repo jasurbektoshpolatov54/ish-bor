@@ -10,7 +10,7 @@ export interface HomeVM { letter?: string; name?: string; loc: string; mic: bool
 export const home = (v: HomeVM) => `${bg}
 <div class="greet"><div class="av"${v.letter ? '' : ' style="font-size:0"'}>${v.letter || I('user', 2)}</div><div><small>${v.name ? 'Assalomu alaykum,' : 'Assalomu alaykum!'}</small><b>${v.name || 'Xush kelibsiz'}</b></div></div>
 <div class="h2 mt24" style="font-size:27px;letter-spacing:-.8px;line-height:1.15">Halol mehnat,<br>vositachisiz</div>
-<div class="note mt8" style="font-size:14px">E’lon joylash bepul. Ish uchun hech kimga pul to‘lamang.</div>
+<div class="note mt8" style="font-size:14px">Bir-biringizni to‘g‘ridan-to‘g‘ri toping.</div>
 <div class="search mt18"${A('search')}>${I('search')}Qidirish${v.mic ? `<div class="loc" style="margin-left:auto;margin-right:6px;padding:0;width:38px;justify-content:center"${A('mic')}>${I('mic')}</div>` : ''}<div class="loc" style="margin-left:${v.mic ? '0' : 'auto'}"${A('region')}>${I('pin')}${v.loc}</div></div>
 <div class="two mt20">
  <div class="bigc g"${A('list', 'bor')}><div class="ic">${I('brief')}</div><b>Ish bor</b><small>Ishchi kerakmi? E’lon bering</small><div class="cnt">${v.cntBor} ta e’lon ${I('chev', 2.2)}</div></div>

@@ -54,7 +54,7 @@ const VARIANTS = [{ dir: 'qorongi', light: false }, { dir: 'yorug', light: true 
 // Ataylab farq qiladigan oynalar (spetsifikatsiya bo‘yicha):
 // joylash: APK’da Telegram username yo‘q, shuning uchun “Raqamim ko‘rinsin” majburan yoqilgan va izohi boshqa;
 // hudud: maketda 6 ta tuman namuna, ilovada Toshkentning 12 tumani.
-const KNOWN = { '01-bosh-sahifa': 'yozuv: “E’lon joylash bepul. Ish uchun hech kimga pul to‘lamang.” (6-band)', '05-joylash-ish-bor': 'raqam majburiy (username yo‘q)', '06-joylash-ish-kerak': 'raqam majburiy (username yo‘q); “Mehnat haqqi” (5-band)', '11-hudud-tanlash': 'butun O‘zbekiston: avval viloyat ro‘yxati (4-band)' };
+const KNOWN = { '01-bosh-sahifa': 'yozuv: “Bir-biringizni to‘g‘ridan-to‘g‘ri toping.” (6-band)', '05-joylash-ish-bor': 'raqam majburiy (username yo‘q)', '06-joylash-ish-kerak': 'raqam majburiy (username yo‘q); “Mehnat haqqi” (5-band)', '11-hudud-tanlash': 'butun O‘zbekiston: avval viloyat ro‘yxati (4-band)' };
 
 for (const [set, screens] of Object.entries(SETS)) for (const v of VARIANTS) for (const [name, go] of screens) {
   const ref = `design/screens/${set}/${v.dir}/${name}.png`;
