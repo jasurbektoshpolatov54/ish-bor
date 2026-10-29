@@ -84,3 +84,13 @@ jobs:
           curl -fsS "$API/setChatMenuButton" -H 'Content-Type: application/json' \
             -d "$(jq -nc --arg u "$URL" '{menu_button:{type:"web_app",text:"Ochish",web_app:{url:$u}}}')" | jq -c .
           echo "Mini App manzili: $URL" >> "$GITHUB_STEP_SUMMARY"
+          # Server yo'q, shuning uchun bot /start ga javob bermaydi. Buning o'rniga
+          # bo'sh chatda va bot profilida "Ochish" tugmasini ko'rsatuvchi tavsif chiqadi.
+          desc() {
+            curl -fsS "$API/setMyDescription" -H 'Content-Type: application/json' -d "$(jq -nc --arg d "$1" --arg l "$3" '{description:$d,language_code:$l}')" | jq -c .
+            curl -fsS "$API/setMyShortDescription" -H 'Content-Type: application/json' -d "$(jq -nc --arg d "$2" --arg l "$3" '{short_description:$d,language_code:$l}')" | jq -c .
+          }
+          desc $'Halol mehnat, vositachisiz. Bir-biringizni to‘g‘ridan-to‘g‘ri toping.\n\n👇 Ilovani ochish uchun pastdagi «Ochish» tugmasini bosing.' \
+               'Halol mehnat, vositachisiz. Ilovani pastdagi «Ochish» tugmasi bilan oching.' ''
+          desc $'Честный труд, без посредников. Находите друг друга напрямую.\n\n👇 Чтобы открыть приложение, нажмите кнопку «Ochish» внизу.' \
+               'Честный труд, без посредников. Откройте приложение кнопкой «Ochish» внизу.' 'ru'
