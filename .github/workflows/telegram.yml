@@ -32,16 +32,10 @@ jobs:
           cache: npm
           cache-dependency-path: app/package-lock.json
 
-      # Brauzer oynachalarini (window.prompt/confirm/alert) Telegramga mos oynachaga yo‘naltirish.
-      # Faqat shu yig‘ishda; ilova kodidagi asl fayl o‘zgarmaydi.
-      - name: Telegram oynachalari
-        working-directory: app
-        run: |
-          F=src/app/native.ts
-          N=$(grep -c 'window\.\(prompt\|confirm\|alert\)(' $F)
-          if [ "$N" != 4 ]; then echo "::error::$F da 4 ta oynacha kutilgan edi, $N ta topildi"; exit 1; fi
-          sed -i 's/window\.\(prompt\|confirm\|alert\)(/await (window as any).__tg.\1(/g' $F
-          grep -n '__tg' $F
+      # Telegramga moslash: oynachalar, til tanlash, bosh sahifa yozuvi.
+      # Faqat shu yig‘ishda; ilova kodidagi asl fayllar o‘zgarmaydi.
+      - name: Telegramga moslash
+        run: python3 -I telegram/patch.py app
 
       - name: Ilovani yig‘ish
         working-directory: app
