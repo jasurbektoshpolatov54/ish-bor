@@ -32,15 +32,17 @@ async function usdRate(env) {
   const c = await env.STORE.get('rate', 'json');
   if (c && c.day === day) return c;
   const errs = [];
-  for (const u of ['https://cbu.uz/uz/arkhiv-kursov-valyut/json/USD/', 'https://cbu.uz/ru/arkhiv-kursov-valyut/json/USD/', 'https://cbu.uz/oz/arkhiv-kursov-valyut/json/']) {
+  for (const u of ['https://cbu.uz/uz/arkhiv-kursov-valyut/json/USD/', 'https://cbu.uz/ru/arkhiv-kursov-valyut/json/USD/', 'https://nbu.uz/uz/exchange-rates/json/']) {
     try {
       const r = await fetch(u, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; MehnatBot/1.0)', Accept: 'application/json' }, cf: { cacheTtl: 3600 } });
       if (!r.ok) throw new Error('HTTP ' + r.status);
       const j = await r.json();
-      const usd = (Array.isArray(j) ? j : []).find((x) => x.Ccy === 'USD');
-      const rate = Number(String(usd && usd.Rate).replace(',', '.'));
+      const arr = Array.isArray(j) ? j : [];
+      // cbu.uz: {Ccy, Rate, Date}; nbu.uz: {code, cb_price, date} — ikkalasida ham Markaziy bank kursi
+      const usd = arr.find((x) => x.Ccy === 'USD' || x.code === 'USD');
+      const rate = Number(String(usd && (usd.Rate ?? usd.cb_price)).replace(/\s/g, '').replace(',', '.'));
       if (!(rate > 1000)) throw new Error('kurs topilmadi');
-      const v = { day, rate, date: usd.Date };
+      const v = { day, rate, date: usd.Date || usd.date || '' };
       await env.STORE.put('rate', JSON.stringify(v));
       return v;
     } catch (e) { errs.push(String(e && e.message || e)); }
