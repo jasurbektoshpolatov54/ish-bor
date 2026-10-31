@@ -13,7 +13,7 @@ const STORE = {
 const env = { STORE, BOT_TOKEN: TOKEN, WEBHOOK_SECRET: 's', APP_URL: 'https://x.github.io/ish-bor/', TOP_SOUM: '5000', STAR_USD: '0.02', TOP_DAYS: '7', USD_RATE_FALLBACK: '12500' };
 const calls = [];
 globalThis.fetch = async (u, o) => {
-  if (String(u).includes('cbu.uz')) return { json: async () => [{ Rate: '12345.67', Date: '31.10.2026' }] };
+  if (String(u).includes('cbu.uz')) return { ok: true, json: async () => [{ Ccy: 'USD', Rate: '12345.67', Date: '31.10.2026' }] };
   const m = String(u).split('/').pop(); const b = JSON.parse(o.body); calls.push([m, b]);
   return { json: async () => ({ ok: true, result: m === 'createInvoiceLink' ? 'https://t.me/$inv' : m === 'getMyStarBalance' ? { amount: 21 } : true }) };
 };

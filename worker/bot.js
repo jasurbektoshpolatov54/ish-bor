@@ -31,17 +31,21 @@ async function usdRate(env) {
   const day = new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10); // Toshkent vaqti
   const c = await env.STORE.get('rate', 'json');
   if (c && c.day === day) return c;
-  try {
-    const r = await fetch('https://cbu.uz/uz/arkhiv-kursov-valyut/json/USD/', { cf: { cacheTtl: 3600 } });
-    const j = await r.json();
-    const rate = Number(String(j[0].Rate).replace(',', '.'));
-    if (!(rate > 1000)) throw new Error('kurs');
-    const v = { day, rate, date: j[0].Date };
-    await env.STORE.put('rate', JSON.stringify(v));
-    return v;
-  } catch {
-    return c || { day, rate: Number(env.USD_RATE_FALLBACK || 12500), date: '' };
+  const errs = [];
+  for (const u of ['https://cbu.uz/uz/arkhiv-kursov-valyut/json/USD/', 'https://cbu.uz/ru/arkhiv-kursov-valyut/json/USD/', 'https://cbu.uz/oz/arkhiv-kursov-valyut/json/']) {
+    try {
+      const r = await fetch(u, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; MehnatBot/1.0)', Accept: 'application/json' }, cf: { cacheTtl: 3600 } });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const j = await r.json();
+      const usd = (Array.isArray(j) ? j : []).find((x) => x.Ccy === 'USD');
+      const rate = Number(String(usd && usd.Rate).replace(',', '.'));
+      if (!(rate > 1000)) throw new Error('kurs topilmadi');
+      const v = { day, rate, date: usd.Date };
+      await env.STORE.put('rate', JSON.stringify(v));
+      return v;
+    } catch (e) { errs.push(String(e && e.message || e)); }
   }
+  return c ? { ...c, err: errs.join('; ') } : { day, rate: Number(env.USD_RATE_FALLBACK || 12500), date: '', err: errs.join('; ') };
 }
 
 /** TOP narxi: so'mdagi narxdan biroz yuqori bo'ladigan butun yulduz soni va uning so'mdagi aniq qiymati. */
@@ -53,7 +57,7 @@ export function priceFor(topSoum, starUsd, rate) {
 }
 async function price(env) {
   const r = await usdRate(env);
-  return { ...priceFor(Number(env.TOP_SOUM || 5000), Number(env.STAR_USD || 0.02), r.rate), days: Number(env.TOP_DAYS || 7), rate: r.rate, rateDate: r.date };
+  return { ...priceFor(Number(env.TOP_SOUM || 5000), Number(env.STAR_USD || 0.02), r.rate), days: Number(env.TOP_DAYS || 7), rate: r.rate, rateDate: r.date, ...(r.err ? { rateErr: r.err } : {}) };
 }
 
 async function tg(env, method, body) {
