@@ -194,7 +194,7 @@ ${spacer()}
 ${v.done ? '<div class="link">Shikoyatingiz qabul qilingan</div>' : `<div class="btn gold"${A('csend')}${offIf(v.reason == null)}>Yuborish</div>`}`;
 
 /* 3.11 Hudud */
-export interface RegionVM { q: string; regions?: [string, string][]; vil?: string; districts: [string, boolean, string?][]; radius?: number; denied?: boolean | 'fail'; ready: boolean }
+export interface RegionVM { q: string; regions?: [string, string][]; vil?: string; districts: [string, boolean, string?][]; radius?: number; denied?: boolean | 'fail'; ready: boolean; fold?: boolean }
 export const region = (v: RegionVM) => `${bg}
 ${hdr('Hudud')}
 <div class="big">Qayerda?</div>
@@ -207,7 +207,7 @@ ${v.regions.map(([id, n]) => row('pin', n, I('chev'), undefined, 'vil', id)).joi
 </div>` : `${v.vil ? `<div class="lbl">${v.vil}</div>` : ''}
 <div class="card${v.vil ? '' : ' mt14'}">
 ${v.districts.map(([d, on, sub]) => `<div class="row"${A('district', d)}><div class="tile">${I('pin')}</div><div class="rt"><b>${d}</b>${sub ? `<small>${sub}</small>` : ''}</div>${radio(on)}</div>`).join('')}
-</div>`}
+</div>${v.fold ? `<div class="note mt10" style="color:var(--bluetext);font-weight:500"${A('unfold')}>Boshqa tumanni tanlash</div>` : ''}`}
 <div class="lbl">Qancha masofagacha?</div>
 <div class="chips">${['1–5 km', '5–10 km', '10–20 km', '20–35 km', '35 km dan uzoq'].map((t, i) => chip(t, v.radius === i, 'radius', i)).join('')}</div>
 ${v.radius != null ? '<div class="note mt12">Shu masofa ichidagi e’lonlar ko‘rinadi.</div>' : ''}

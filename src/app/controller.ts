@@ -147,8 +147,11 @@ function screenHtml(s: Scr): string {
       const q = norm(r.q || '');
       const ds = db.districts.filter((d) => d.enabled && (q ? norm(d.name).includes(q) || (!!d.ru && norm(d.ru).includes(q)) : d.region === r.vil)).sort((a, b) => a.name.localeCompare(b.name, 'uz'));
       const regName = (id?: string) => REGIONS.find((x) => x.id === id)?.name || 'Boshqa';
+      // Tuman tanlangach ro‘yxat yig‘iladi: faqat tanlangan tuman qoladi, masofa va “Tanlash” ko‘rinib turadi.
+      const fold = !q && !!r.vil && r.fold !== false && ds.some((d) => d.name === r.district);
+      if (fold) ds.splice(0, ds.length, ...ds.filter((d) => d.name === r.district));
       const regions = !q && !r.vil ? REGIONS.filter((g) => db.districts.some((d) => d.enabled && d.region === g.id)).map((g) => [g.id, g.name] as [string, string]) : undefined;
-      return U.region({ q: esc(r.q || ''), regions, vil: !q && r.vil ? regName(r.vil) : undefined, districts: ds.map((d) => [d.name, r.district === d.name, q ? regName(d.region) : undefined]), radius: r.radius, denied: r.denied, ready: !!r.district && r.radius != null });
+      return U.region({ q: esc(r.q || ''), regions, vil: !q && r.vil ? regName(r.vil) : undefined, districts: ds.map((d) => [d.name, r.district === d.name, q ? regName(d.region) : undefined]), radius: r.radius, denied: r.denied, ready: !!r.district && r.radius != null, fold });
     }
     case 'mybor': {
       const l = listingById(s.p)!;
@@ -609,13 +612,14 @@ async function act(a: string, v: string | undefined, el: HTMLElement) {
     case 'play': { const dU = await N.loadVoice(v!); if (dU) N.play(dU); return; }
     /* hudud */
     case 'vil': s.p.vil = v; render(); return window.scrollTo(0, 0);
-    case 'district': s.p.district = v; s.p.lat = undefined; s.p.lng = undefined; return render();
+    case 'district': s.p.district = v; s.p.lat = undefined; s.p.lng = undefined; s.p.fold = true; s.p.q = ''; render(); return window.scrollTo(0, 0);
+    case 'unfold': s.p.fold = false; return render();
     case 'radius': s.p.radius = Number(v); return render();
     case 'locate': {
       const p = await N.locate();
       if (!p || p === 'fail') { s.p.denied = p ? 'fail' : true; return render(); }
       const d = nearestDistrict(db, p.lat, p.lng);
-      s.p.district = d.name; s.p.vil = d.region; s.p.lat = p.lat; s.p.lng = p.lng; s.p.denied = false; return render();
+      s.p.district = d.name; s.p.vil = d.region; s.p.lat = p.lat; s.p.lng = p.lng; s.p.denied = false; s.p.fold = true; s.p.q = ''; render(); return window.scrollTo(0, 0);
     }
     case 'rpick': return pickRegion();
     /* profil */
@@ -1306,7 +1310,7 @@ export async function start(el: HTMLElement) {
     if (!k) return;
     if (cur().n.startsWith('a')) adminLast = Date.now();
     if (k === 'q') { ui.q = t.value; ui.page = 1; debounce(render, 300); return; }
-    if (k === 'rq') { cur().p.q = t.value; return render(); }
+    if (k === 'rq') { cur().p.q = t.value; cur().p.fold = false; return render(); }
     if (k === 'izoh') { draft().bor.izoh = t.value.slice(0, 300); save(); return; }
     if (k === 'extra') { sheetS!.p.text = t.value.slice(0, 300); const c = root.querySelector('[data-count]'); if (c) c.textContent = `${t.value.length} / 300`; return render(); }
     if (k === 'acode') { ui.acode = t.value.slice(0, 12); ui.aerr = false; return render(); }
