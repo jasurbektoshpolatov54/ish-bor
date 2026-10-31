@@ -22,7 +22,7 @@ type Scr = { n: string; p?: any };
 let stack: Scr[] = [{ n: 'home' }];
 let sheetS: Scr | null = null;
 const cur = () => stack[stack.length - 1];
-const ui: Record<string, any> = { q: '', listKind: 'bor', fjobs: [] as string[], fgender: 'farqi', open: [] as number[], mic: false, page: 1 };
+const ui: Record<string, any> = { q: '', listKind: 'bor', homeKind: 'bor', fjobs: [] as string[], fgender: 'farqi', open: [] as number[], mic: false, page: 1 };
 let adminLast = 0;
 let adminIn = false;
 let root: HTMLElement;
@@ -83,8 +83,8 @@ function screenHtml(s: Scr): string {
   const t = now();
   switch (s.n) {
     case 'home': {
-      const near = search(db, u, { kind: 'bor' }, t).slice(0, 3).map((l) => lcFor(l, u, 'home'));
-      return U.home({ letter: letter(u), name: u?.name, loc: u?.district || 'Hudud', mic: ui.mic, cntBor: money(count('bor')), cntKerak: money(count('kerak')), near });
+      const near = search(db, u, { kind: ui.homeKind }, t).slice(0, 3).map((l) => lcFor(l, u, 'home'));
+      return U.home({ letter: letter(u), name: u?.name, kind: ui.homeKind, cntBor: money(count('bor')), cntKerak: money(count('kerak')), near });
     }
     case 'list': {
       const kind = ui.listKind as Kind;
@@ -513,7 +513,9 @@ async function act(a: string, v: string | undefined, el: HTMLElement) {
       return reset(v === 'list' ? 'list' : v === 'profile' ? 'profile' : 'home');
     case 'list': ui.listKind = v; ui.page = 1; return reset('list');
     case 'kind': ui.listKind = v; ui.page = 1; return render();
-    case 'search': ui.listKind = 'bor'; reset('list'); setTimeout(() => root.querySelector<HTMLInputElement>('[data-in="q"]')?.focus(), 50); return;
+    // Bosh sahifa bo‘limi: birinchi bosish ro‘yxatni shu yerda almashtiradi, tanlangan bo‘limni qayta bosish E’lonlarga o‘tadi.
+    case 'hkind': if (ui.homeKind === v) { ui.listKind = v; ui.page = 1; return reset('list'); } ui.homeKind = v; return render();
+    case 'search': ui.listKind = ui.homeKind; reset('list'); setTimeout(() => root.querySelector<HTMLInputElement>('[data-in="q"]')?.focus(), 50); return;
     case 'mic': {
       const r = await N.listen();
       if (r) { ui.q = r; ui.page = 1; if (cur().n !== 'list') reset('list'); else render(); }

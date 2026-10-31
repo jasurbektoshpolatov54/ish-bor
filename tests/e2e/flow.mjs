@@ -94,6 +94,12 @@ await tap('pgender', 'Erkak'); await tap('ptrait', '1');
 await tap('psubmit'); await expectScreen('done');
 await tap('nav', 'home'); await tap('nav', 'list'); await tap('kind', 'kerak'); await has('200 000'); await shot('elonlar-kerak');
 
+// Bosh sahifa bo‘limlari: birinchi bosish ro‘yxatni shu yerda almashtiradi, ikkinchisi E’lonlarga o‘tadi
+await tap('nav', 'home'); await shot('home-ish-bor');
+await tap('hkind', 'kerak'); await expectScreen('home'); await has('200 000'); await shot('home-ish-kerak');
+await tap('hkind', 'kerak'); await expectScreen('list'); await has('200 000');
+await tap('nav', 'home'); await tap('hkind', 'bor'); await expectScreen('home');
+
 // 3: Ish kerak e’lonini tahrirlash — “Saqlash” bosilmaguncha o‘zgarmaydi
 const openKerak = async () => { await tap('nav', 'profile'); const m = p.locator('[data-a="mine"]'); for (let i = 0; i < await m.count(); i++) { await m.nth(i).click(); await p.waitForTimeout(150); if (await screen() === 's-mykerak') return; await tap('back'); } errs.push('mykerak ochilmadi'); };
 const edit = async () => {
