@@ -55,7 +55,9 @@ body.light{
 .sel.on{border-color:var(--blue);background:var(--bluebg);box-shadow:0 0 0 1px var(--blue) inset}.sel.on b{color:var(--bluetext)}
 .disc{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--mint);color:var(--minttext);font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;white-space:nowrap}
 .chips{display:flex;flex-wrap:wrap;gap:8px;padding:0 20px}
-.chips.scroll{flex-wrap:nowrap;overflow:hidden}
+.chips.scroll{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior-x:contain}
+.chips.scroll::-webkit-scrollbar{display:none}
+.chips.scroll::after{content:"";flex:none;width:12px}
 .chip{height:36px;padding:0 14px;border-radius:18px;border:1px solid var(--line);background:var(--card);font-size:13.5px;font-weight:500;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;flex:none}
 .chip svg{width:15px;height:15px;color:var(--tileic)}
 .chip.on{border-color:var(--blue);background:var(--bluebg);color:var(--bluetext)}.chip.on svg{color:var(--bluetext)}
