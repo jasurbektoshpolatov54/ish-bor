@@ -4,7 +4,7 @@ name: Telegram Mini App
 # Telegram skripti qo‘shiladi va gh-pages shoxobchasiga joylanadi.
 on:
   push:
-    branches: [claude/project-thread-j0x9dd, claude/project-thread-1d1pyx]
+    branches: [claude/project-thread-j0x9dd, claude/project-thread-1d1pyx, claude/project-thread-4cjo2w]
 
 permissions:
   contents: write
@@ -32,9 +32,65 @@ jobs:
           cache: npm
           cache-dependency-path: app/package-lock.json
 
+      # Stars serveri (bepul Cloudflare Worker): bot webhook'i, TOP narxi va to'lov hisoblari.
+      # CLOUDFLARE_API_TOKEN bo'lmasa o'tkazib yuboriladi va ilova Starssiz yig'iladi.
+      - name: Stars serveri (Cloudflare)
+        id: stars
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          ADMIN_INITIAL_CODE: ${{ secrets.ADMIN_INITIAL_CODE }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then echo "::notice::CLOUDFLARE_API_TOKEN yo‘q: Stars to‘lovi o‘chiq"; exit 0; fi
+          if [ -z "$TOKEN" ]; then echo "::error::TELEGRAM_BOT_TOKEN yo‘q"; exit 1; fi
+          node worker/test.mjs
+          CF=https://api.cloudflare.com/client/v4
+          cf() { curl -sS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H 'Content-Type: application/json' "$@"; }
+          ACC=$(cf "$CF/accounts" | jq -r '.result[0].id // empty')
+          if [ -z "$ACC" ]; then echo "::error::Cloudflare kaliti hisobni ko‘rmayapti (Account Resources da hisobni tanlang)"; exit 1; fi
+          SUB=$(cf "$CF/accounts/$ACC/workers/subdomain" | jq -r '.result.subdomain // empty')
+          if [ -z "$SUB" ]; then
+            SUB="mehnat-${ACC:0:6}"
+            cf -X PUT "$CF/accounts/$ACC/workers/subdomain" -d "{\"subdomain\":\"$SUB\"}" | jq -c '{success, errors}'
+          fi
+          KV=$(cf "$CF/accounts/$ACC/storage/kv/namespaces?per_page=100" | jq -r '.result[]? | select(.title=="mehnat-bot") | .id')
+          if [ -z "$KV" ]; then KV=$(cf -X POST "$CF/accounts/$ACC/storage/kv/namespaces" -d '{"title":"mehnat-bot"}' | jq -r '.result.id // empty'); fi
+          if [ -z "$KV" ]; then echo "::error::KV ombori ochilmadi"; exit 1; fi
+          OWNER="${GITHUB_REPOSITORY%%/*}"; NAME="${GITHUB_REPOSITORY#*/}"
+          cat > worker/wrangler.toml <<EOT
+          name = "mehnat-bot"
+          main = "bot.js"
+          compatibility_date = "2024-09-23"
+          account_id = "$ACC"
+          workers_dev = true
+          kv_namespaces = [{ binding = "STORE", id = "$KV" }]
+          [vars]
+          APP_URL = "https://${OWNER,,}.github.io/${NAME}/"
+          TOP_SOUM = "${{ vars.TOP_SOUM || '5000' }}"
+          TOP_DAYS = "${{ vars.TOP_DAYS || '7' }}"
+          STAR_USD = "${{ vars.STAR_USD || '0.02' }}"
+          USD_RATE_FALLBACK = "12500"
+          EOT
+          WH=$(printf '%s' "webhook:$TOKEN" | sha256sum | cut -c1-48)
+          AH=""; if [ -n "$ADMIN_INITIAL_CODE" ]; then AH=$(printf '%s' "$ADMIN_INITIAL_CODE" | sha256sum | cut -d' ' -f1); fi
+          cd worker
+          npx --yes wrangler@3.114.17 deploy
+          umask 077; jq -n --arg a "$TOKEN" --arg b "$WH" --arg c "$AH" '{BOT_TOKEN:$a, WEBHOOK_SECRET:$b, ADMIN_HASH:$c}' > "$RUNNER_TEMP/s.json"
+          npx --yes wrangler@3.114.17 secret bulk "$RUNNER_TEMP/s.json"; rm -f "$RUNNER_TEMP/s.json"
+          URL="https://mehnat-bot.$SUB.workers.dev"
+          for i in $(seq 1 30); do if curl -fsS "$URL/narx" | jq -e .stars >/dev/null 2>&1; then OK=1; break; fi; sleep 10; done
+          if [ -z "$OK" ]; then echo "::error::$URL javob bermadi"; exit 1; fi
+          curl -fsS "$URL/narx" | jq -c . | tee -a "$GITHUB_STEP_SUMMARY"
+          curl -fsS "https://api.telegram.org/bot$TOKEN/setWebhook" -H 'Content-Type: application/json' \
+            -d "$(jq -nc --arg u "$URL/tg" --arg s "$WH" '{url:$u, secret_token:$s, allowed_updates:["message","pre_checkout_query"]}')" | jq -c .
+          echo "Stars serveri: $URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "api=$URL" >> "$GITHUB_OUTPUT"
+
       # Telegramga moslash: oynachalar, til tanlash, bosh sahifa yozuvi.
       # Faqat shu yig‘ishda; ilova kodidagi asl fayllar o‘zgarmaydi.
       - name: Telegramga moslash
+        env:
+          STARS_API: ${{ steps.stars.outputs.api }}
         run: python3 -I telegram/patch.py app
 
       - name: Ilovani yig‘ish
@@ -47,7 +103,10 @@ jobs:
           if [ -n "$ADMIN_INITIAL_CODE" ] && grep -rqF -- "$ADMIN_INITIAL_CODE" dist; then echo "Kod ochiq holda topildi!"; exit 1; fi
 
       - name: Telegram skripti
+        env:
+          STARS_API: ${{ steps.stars.outputs.api }}
         run: |
+          sed -i "s|%STARS_API%|$STARS_API|" telegram/inject.html
           awk 'FNR==NR{t=t $0 "\n"; next} /<\/head>/{printf "%s", t} 1' telegram/inject.html app/dist/index.html > index.tmp
           mv index.tmp app/dist/index.html
           grep -q telegram-web-app.js app/dist/index.html

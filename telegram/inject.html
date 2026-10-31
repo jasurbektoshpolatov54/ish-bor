@@ -115,6 +115,29 @@
     confirm: function (msg) { return Promise.resolve(window.confirm(msg)); },
     alert: function (msg) { window.alert(msg); return Promise.resolve(); },
   };
+  // Telegram Stars: server manzili yig'ishda yoziladi (bo'sh bo'lsa, Stars yo'q).
+  var STARS_API = '%STARS_API%';
+  if (inTg && /^https:/.test(STARS_API)) {
+    var narx = null;
+    var loadNarx = function () {
+      return fetch(STARS_API + '/narx').then(function (r) { return r.json(); }).then(function (j) { narx = j; return j; }).catch(function () { return narx; });
+    };
+    loadNarx();
+    var soum = function (n) { var p = n.toFixed(2).split('.'); return p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ',' + p[1]; };
+    api.starsLabel = function () { return '⭐ ' + (narx ? narx.stars : '…'); };
+    api.starsSoum = function () { return narx ? soum(narx.soum) : undefined; };
+    // To'lov: server hisob ochadi, Telegram o'z oynasida to'lov oladi. Natija: paid | cancelled | failed | pending
+    api.stars = function (order) {
+      return fetch(STARS_API + '/invoice', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: w.initData, order: order }) })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j.link) throw new Error(j.error || 'invoice');
+          if (j.stars && narx) { narx.stars = j.stars; narx.soum = j.soum; }
+          return new Promise(function (res) { w.openInvoice(j.link, function (st) { res(st); }); });
+        })
+        .catch(function () { return 'failed'; });
+    };
+  }
   if (!inTg) return;
   w.ready();
   w.expand();
