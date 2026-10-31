@@ -79,6 +79,11 @@ if (!(await p.locator('[data-a="wother"].on').count())) errs.push('Boshqa kun: s
 await tap('wclock'); await p.waitForTimeout(100); await shot('boshqa-soat');
 await p.evaluate(() => { document.querySelector('[data-wheel="h"]').scrollTop = 13 * 44; document.querySelector('[data-wheel="m"]').scrollTop = 25 * 44; }); await p.waitForTimeout(300);
 await tap('wclockok'); await has('13:25'); if (!(await p.locator('[data-a="wclock"].on').count())) errs.push('Boshqa soat: belgilanmadi');
+await shot('qachon-tanlangan');
+// Belgilangan tugmani bosish tanlovni bekor qiladi, yana bosish tanlovni ochadi
+await tap('wclock'); if (await p.locator('[data-a="wclock"].on').count() || await p.locator('[data-wheel]').count()) errs.push('Boshqa soat: bekor qilinmadi');
+await tap('wother'); if (await p.locator('[data-a="wother"].on').count() || await p.locator('[data-a="wdate"]').count()) errs.push('Boshqa kun: bekor qilinmadi');
+await tap('wother'); if (!(await p.locator('[data-a="wdate"]').count())) errs.push('Boshqa kun: qayta ochilmadi'); await tap('wback');
 await tap('wday', 'Ertaga'); await tap('whour', '09:00'); await tap('wok');
 await tap('pkim', 'Erkak');
 await tap('ppay', 'kun'); await shot('haq');
@@ -106,6 +111,10 @@ await tap('ppay'); await tap('quick', '200 000'); await tap('aok');
 await tap('pgender', 'Erkak'); await tap('ptrait', '1');
 await tap('psubmit'); await expectScreen('done');
 await tap('nav', 'home'); await tap('nav', 'list'); await tap('kind', 'kerak'); await has('200 000'); await shot('elonlar-kerak');
+if (!(await p.locator('[data-a="region"].on').count())) errs.push('Hudud filtri belgilanmagan');
+await tap('region'); if (await p.locator('[data-a="region"].on').count()) errs.push('Hudud filtri bekor qilinmadi'); await expectScreen('list'); await shot('hudud-bekor');
+await tap('region'); await expectScreen('region'); await tap('radius', '2'); await tap('rpick'); await expectScreen('list');
+if (!(await p.locator('[data-a="region"].on').count())) errs.push('Hudud filtri qayta tanlanmadi');
 
 // Bosh sahifa bo‘limlari: birinchi bosish ro‘yxatni shu yerda almashtiradi, ikkinchisi E’lonlarga o‘tadi
 await tap('nav', 'home'); await shot('home-ish-bor');

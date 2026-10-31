@@ -542,9 +542,10 @@ async function act(a: string, v: string | undefined, el: HTMLElement) {
       if (r) { ui.q = r; ui.page = 1; if (cur().n !== 'list') reset('list'); else render(); }
       return;
     }
-    case 'region': return go('region', { target: 'search', q: '', vil: vilOf(u.district), district: u.district, lat: u.lat, lng: u.lng, radius: u.radius });
-    case 'fjob': return openSheet('fjob', { v: [...ui.fjobs] });
-    case 'fgender': return openSheet('fgender', { v: ui.fgender });
+    // Belgilangan tanlov tugmasi: birinchi bosish bekor qiladi, keyingisi tanlovni ochadi.
+    case 'region': if (el.classList.contains('on')) { u.radius = undefined; ui.page = 1; save(); return render(); } return go('region', { target: 'search', q: '', vil: vilOf(u.district), district: u.district, lat: u.lat, lng: u.lng, radius: u.radius });
+    case 'fjob': if (ui.fjobs.length) { ui.fjobs = []; ui.page = 1; return render(); } return openSheet('fjob', { v: [...ui.fjobs] });
+    case 'fgender': if (ui.fgender !== 'farqi') { ui.fgender = 'farqi'; ui.page = 1; return render(); } return openSheet('fgender', { v: ui.fgender });
     case 'fj': { const p = sheetS!.p; p.v = p.v.includes(v) ? p.v.filter((x: string) => x !== v) : [...p.v, v]; return render(); }
     case 'fjall': sheetS!.p.v = []; return render();
     case 'fjok': ui.fjobs = sheetS!.p.v; ui.page = 1; return closeSheet();
@@ -596,7 +597,7 @@ async function act(a: string, v: string | undefined, el: HTMLElement) {
     case 'psubmit': return submitPost();
     /* qachon */
     case 'wday': sheetS!.p.day = v; sheetS!.p.other = undefined; return render();
-    case 'wother': { const p = sheetS!.p; p.mode = 'cal'; p.calM = p.other ? monthOf(p.other) : undefined; return render(); }
+    case 'wother': { const p = sheetS!.p; if (p.day === 'other') { p.day = undefined; p.other = undefined; return render(); } p.mode = 'cal'; p.calM = p.other ? monthOf(p.other) : undefined; return render(); }
     case 'wcalm': sheetS!.p.calM = (sheetS!.p.calM ?? monthOf(now())) + Number(v); return render();
     case 'wdate': {
       const p = sheetS!.p; const ts = Number(v); const d = Math.round((ts - dayStart(now())) / DAY_MS);
@@ -604,6 +605,7 @@ async function act(a: string, v: string | undefined, el: HTMLElement) {
     }
     case 'wback': sheetS!.p.mode = undefined; return render();
     case 'wclock': {
+      if (sheetS!.p.hour && !U.HOURS.includes(sheetS!.p.hour)) { sheetS!.p.hour = undefined; return render(); }
       sheetS!.p.mode = 'clock'; render();
       const [h, m] = (sheetS!.p.hour || '08:00').split(':').map(Number);
       setTimeout(() => { const H = root.querySelector<HTMLElement>('[data-wheel="h"]'), M = root.querySelector<HTMLElement>('[data-wheel="m"]'); if (H) H.scrollTop = h * 44; if (M) M.scrollTop = m * 44; }, 0);
