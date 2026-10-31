@@ -62,7 +62,7 @@ await tap('vil', 'UZ-TK'); await shot('Hudud · Toshkent shahri');
 await tap('district', 'Chilonzor'); await tap('radius', '1'); await shot('Hudud tanlandi');
 await tap('rpick');
 await tap('pwhen'); await tap('wday', 'Ertaga'); await tap('whour', '09:00'); await shot('Qachon? (pastdan)');
-await tap('wother'); await shot('Boshqa kun (pastdan)'); await p.locator('.sheet [data-a="close"]').last().click(); await p.waitForTimeout(150); await tap('wok');
+await tap('wother'); await shot('Boshqa kun (pastdan)'); await tap('wback'); await tap('wclock'); await shot('Boshqa soat (pastdan)'); await tap('wback'); await tap('wok');
 await tap('ppeople', '1');
 await tap('pkim', 'Erkak');
 await tap('ppay', 'kun'); for (const k of ['2', '5', '0', '0', '0', '0']) await tap('key', k); await shot('Haq kiritish (pastdan)'); await tap('aok');

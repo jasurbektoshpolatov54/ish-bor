@@ -8,7 +8,7 @@ export const RU: Record<string, string> = {
   'Bekor qilish': 'Отмена', 'Ortga': 'Назад', 'Qaytish': 'Вернуться', 'Yuborish': 'Отправить', 'Ha': 'Да', 'Yo‘q': 'Нет', 'OK': 'OK',
   'Ishonchingiz komilmi?': 'Вы уверены?', 'hozir': 'сейчас', 'kecha': 'вчера', 'kun': 'день', 'so‘m': 'сум', 'Bepul': 'Бесплатно',
   'Assalomu alaykum,': 'Здравствуйте,', 'Assalomu alaykum!': 'Здравствуйте!', 'Xush kelibsiz': 'Добро пожаловать',
-  'Halol mehnat,': 'Честный труд,', 'vositachisiz': 'без посредников', 'Halol mehnat, vositachisiz': 'Честный труд, без посредников', 'Boshqa tumanni tanlash': 'Выбрать другой район', 'Masofani belgilang.': 'Укажите расстояние.', 'Boshqa viloyatni tanlash': 'Выбрать другую область', 'Tuman yoki shahar': 'Район или город',
+  'Halol mehnat,': 'Честный труд,', 'vositachisiz': 'без посредников', 'Halol mehnat, vositachisiz': 'Честный труд, без посредников', 'Boshqa tumanni tanlash': 'Выбрать другой район', 'Masofani belgilang.': 'Укажите расстояние.', 'Boshqa viloyatni tanlash': 'Выбрать другую область', 'Tuman yoki shahar': 'Район или город', 'Boshqa soat': 'Другое время', 'Bugun uchun o‘tib ketgan vaqtni tanlab bo‘lmaydi.': 'Прошедшее время на сегодня выбрать нельзя.', 'Bu vaqt o‘tib ketgan. Keyinroq vaqtni tanlang.': 'Это время уже прошло. Выберите более позднее.',
   'Bir-biringizni to‘g‘ridan-to‘g‘ri toping.': 'Находите друг друга напрямую.',
   'Ishchi kerakmi? E’lon bering': 'Нужен работник? Подайте объявление', 'Ish qidiryapsizmi? O‘zingizni yozing': 'Ищете работу? Расскажите о себе',
   'Yaqin atrofda': 'Поблизости', 'Hozircha e’lon yo‘q': 'Пока нет объявлений', 'Birinchi bo‘lib e’lon joylang': 'Подайте объявление первым',
@@ -148,6 +148,7 @@ const WD_RU = ['понедельник', 'вторник', 'среда', 'чет
 const date = (d: string, m: string) => `${d} ${MON_RU[MON.indexOf(m)]}`;
 
 export const RU_P: [RegExp, (m: RegExpMatchArray, tr: (s: string) => string) => string | undefined][] = [
+  [/^(Yanvar|Fevral|Mart|Aprel|May|Iyun|Iyul|Avgust|Sentabr|Oktabr|Noyabr|Dekabr) (\d{4})$/, (m) => `${['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'][MON.indexOf(m[1].toLowerCase())]} ${m[2]}`],
   [/^(\d+) ta e’lon$/, (m) => `${m[1]} ${plural(+m[1], 'объявление', 'объявления', 'объявлений')}`],
   [/^(\d+) ta ishchi$/, (m) => `${m[1]} ${plural(+m[1], 'работник', 'работника', 'работников')}`],
   [/^(\d+) ta e’lon ro‘yxat boshida$/, (m) => `${m[1]} ${plural(+m[1], 'объявление', 'объявления', 'объявлений')} в начале списка`],

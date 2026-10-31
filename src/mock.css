@@ -191,3 +191,21 @@ body.light{
 .anav a{width:auto;color:var(--muted)}.anav a svg{width:22px;height:22px}
 .anav a.pill{flex-direction:row;gap:7px;height:46px;padding:0 16px;border-radius:23px;background:linear-gradient(180deg,var(--gold1),var(--gold2));color:var(--goldtext);font-size:13.5px;font-weight:600;box-shadow:0 6px 18px var(--goldglow)}
 .anav a.pill svg{width:19px;height:19px}
+
+/* Qachon: kalendar va soat g‘altagi */
+.calh{display:flex;align-items:center;justify-content:space-between;padding:0 22px;margin:12px 0 10px}
+.calh b{font-size:17px;font-weight:700;letter-spacing:-.3px}
+.calh .cnav{width:38px;height:38px;border-radius:50%;background:var(--tile);color:var(--tileic);display:flex;align-items:center;justify-content:center}
+.calh .cnav svg{width:18px;height:18px}
+.calg{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:0 20px}
+.calg .cwd{text-align:center;font-size:12px;font-weight:600;color:var(--muted);padding:4px 0}
+.calg .cd{height:42px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;background:var(--bg);border:1px solid var(--line)}
+.calg .cd.td{border-color:var(--tileic);color:var(--tileic)}
+.calg .cd.on{background:linear-gradient(140deg,#f8dd9c,#e0b25e 60%,#c8933f);color:#16130c;border-color:transparent;box-shadow:0 6px 16px rgba(214,170,90,.3)}
+.calg .cd.off{opacity:.28;background:none}
+.whl{position:relative;display:flex;justify-content:center;align-items:center;gap:6px;height:220px;margin:14px 22px 0}
+.whl .whb{position:absolute;left:0;right:0;top:88px;height:44px;border-radius:14px;background:var(--tile);border:1px solid var(--line)}
+.whl .whs{position:relative;font-size:26px;font-weight:700;color:var(--tileic)}
+.whc{position:relative;width:86px;height:220px;overflow-y:scroll;scroll-snap-type:y mandatory;scrollbar-width:none;padding:88px 0;box-sizing:border-box;-webkit-mask-image:linear-gradient(transparent,#000 38%,#000 62%,transparent);mask-image:linear-gradient(transparent,#000 38%,#000 62%,transparent);overscroll-behavior:contain}
+.whc::-webkit-scrollbar{display:none}
+.whc div{height:44px;line-height:44px;text-align:center;font-size:26px;font-weight:600;letter-spacing:.5px;scroll-snap-align:center;font-variant-numeric:tabular-nums}

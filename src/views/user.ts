@@ -311,15 +311,34 @@ ${spacer(24)}
 <div class="btn gold"${A('nav', 'profile')}>Mening e’lonlarim</div>`;
 
 /* 3.16 Qachon (pastdan) */
+export const HOURS = ['07:00', '08:00', '09:00', '10:00', '12:00', '14:00', '16:00', '18:00'];
 export interface WhenVM { day?: string; other?: string; hour?: string; past: string[]; ready: boolean }
 export const whenSheet = (under: string, v: WhenVM) => `${bg}${dim(under)}
 ${sheet(`${sh('Qachon?')}
 <div class="lbl" style="margin-top:10px">Kuni</div>
 <div class="chips">${chip('Bugun', v.day === 'Bugun', 'wday', 'Bugun')}${chip('Ertaga', v.day === 'Ertaga', 'wday', 'Ertaga')}${chip('Indinga', v.day === 'Indinga', 'wday', 'Indinga')}${chip(I('cal') + (v.other || 'Boshqa kun'), v.day === 'other', 'wother')}</div>
 <div class="lbl">Soati</div>
-<div class="chips">${['07:00', '08:00', '09:00', '10:00', '12:00', '14:00', '16:00', '18:00'].map((t) => chip(t, v.hour === t, v.past.includes(t) ? undefined : 'whour', t, 'min-width:74px;justify-content:center' + (v.past.includes(t) ? ';opacity:.4' : ''))).join('')}</div>
+<div class="chips">${HOURS.map((t) => chip(t, v.hour === t, v.past.includes(t) ? undefined : 'whour', t, 'min-width:74px;justify-content:center' + (v.past.includes(t) ? ';opacity:.4' : ''))).join('')}${chip(I('clock') + (v.hour && !HOURS.includes(v.hour) ? v.hour : 'Boshqa soat'), !!v.hour && !HOURS.includes(v.hour), 'wclock')}</div>
 <div class="note mt12">Bir necha kunlik ish bo‘lsa, “Izoh”ga yozing.</div>
 <div class="btn gold mt18"${A('wok')}${offIf(!v.ready)}>Tayyor</div>`)}`;
+
+const subHead = (t: string) => `<div style="display:flex;align-items:center;gap:12px;padding:10px 22px 4px"><div class="back" style="position:static;flex:0 0 auto"${A('wback')}>${I('back', 2.2)}</div><div style="font-size:19px;font-weight:700;letter-spacing:-.4px">${t}</div></div>`;
+
+/* Boshqa kun: oylik kalendar */
+export interface CalVM { month: string; prev: boolean; next: boolean; cells: ({ n: number; ts: number; off: boolean; on: boolean; today: boolean } | null)[] }
+export const whenCal = (under: string, v: CalVM) => `${bg}${dim(under)}
+${sheet(`${subHead('Boshqa kun')}
+<div class="calh"><div class="cnav"${v.prev ? A('wcalm', -1) : ' style="opacity:.3"'}>${I('back', 2.2)}</div><b>${v.month}</b><div class="cnav"${v.next ? A('wcalm', 1) : ' style="opacity:.3"'}>${I('chev', 2.2)}</div></div>
+<div class="calg">${['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'].map((d) => `<span class="cwd">${d}</span>`).join('')}${v.cells.map((c) => (c ? `<span class="cd${c.on ? ' on' : ''}${c.today ? ' td' : ''}${c.off ? ' off' : ''}"${c.off ? '' : A('wdate', c.ts)}>${c.n}</span>` : '<span></span>')).join('')}</div>
+<div class="btn ghost mt18"${A('wback')}>Bekor qilish</div>`)}`;
+
+/* Boshqa soat: budilnikdagidek aylanadigan g‘altak */
+const wheel = (k: string, n: number) => `<div class="whc" data-wheel="${k}">${Array.from({ length: n }, (_, i) => `<div${A('wsnap', `${k}${i}`)}>${String(i).padStart(2, '0')}</div>`).join('')}</div>`;
+export const whenClock = (under: string, past: boolean) => `${bg}${dim(under)}
+${sheet(`${subHead('Boshqa soat')}
+<div class="whl"><div class="whb"></div>${wheel('h', 24)}<b class="whs">:</b>${wheel('m', 60)}</div>
+${past ? '<div class="note mt12" style="text-align:center">Bugun uchun o‘tib ketgan vaqtni tanlab bo‘lmaydi.</div>' : ''}
+<div class="btn gold mt18"${A('wclockok')}>Tanlash</div>`)}`;
 
 /* 3.17 Haq kiritish */
 export interface AmountVM { title: string; amount: string; quick: string[] }

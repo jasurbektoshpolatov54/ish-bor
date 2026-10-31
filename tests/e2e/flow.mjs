@@ -66,10 +66,19 @@ await tap('rpick'); await expectScreen('post');
 await tap('pwhen'); await shot('qachon');
 // 1: boshqa kun oynasi — orqaga qaytadi
 await tap('wother'); await p.waitForTimeout(150); await shot('boshqa-kun');
-if (!(await p.locator('[data-a="pickv"]').count())) errs.push('Boshqa kun: tanlov oynasi chiqmadi');
-await p.locator('.sheet [data-a="close"]').last().click(); await p.waitForTimeout(150);
-if (await p.locator('[data-a="pickv"]').count()) errs.push('Boshqa kun: Bekor qilish yopmadi');
+if (!(await p.locator('[data-a="wdate"]').count())) errs.push('Boshqa kun: kalendar chiqmadi');
+await tap('wback');
+if (await p.locator('[data-a="wdate"]').count()) errs.push('Boshqa kun: Bekor qilish yopmadi');
 if (!(await p.locator('[data-a="wok"]').count())) errs.push('Boshqa kun: qachon oynasiga qaytmadi');
+// Kalendardan 5 kun keyingi sanani tanlash
+await tap('wother'); { const d = p.locator('[data-a="wdate"]'); const want = await d.count();
+  await tap('wcalm', '1'); await tap('wcalm', '-1'); if (await d.count() !== want) errs.push('kalendar oy almashtirish');
+  await tap('wcalm', '1'); await shot('kalendar'); await d.nth(4).click(); await p.waitForTimeout(150); }
+if (!(await p.locator('[data-a="wother"].on').count())) errs.push('Boshqa kun: sana belgilanmadi');
+// Boshqa soat: g‘altakdan 13:25
+await tap('wclock'); await p.waitForTimeout(100); await shot('boshqa-soat');
+await p.evaluate(() => { document.querySelector('[data-wheel="h"]').scrollTop = 13 * 44; document.querySelector('[data-wheel="m"]').scrollTop = 25 * 44; }); await p.waitForTimeout(300);
+await tap('wclockok'); await has('13:25'); if (!(await p.locator('[data-a="wclock"].on').count())) errs.push('Boshqa soat: belgilanmadi');
 await tap('wday', 'Ertaga'); await tap('whour', '09:00'); await tap('wok');
 await tap('pkim', 'Erkak');
 await tap('ppay', 'kun'); await shot('haq');

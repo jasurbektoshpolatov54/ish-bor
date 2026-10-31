@@ -13,7 +13,7 @@ import { db, load, save, flush, now, uid, me, owner, userById, listingById, isAd
 import { REGIONS } from '../core/places';
 import { freshDB, PAY_APPS, RADII, TRAITS, REASONS, REJECT_REASONS, JOB_TYPES } from '../core/seed';
 import { search, title, jobIcon, jobName, isTop, suspicious, complaintTrigger, closeAt, pauseTop, resumeTop, extendTop, genderLabel, nearestDistrict, keepStep, norm, personTitle, isPublic, codeRules } from '../core/rules';
-import { money, dayStart, DAY_MS, hhmm, weekday, dmy, normPhone, maskPhone, fullDate, ago } from '../core/format';
+import { money, dayStart, DAY_MS, hhmm, weekday, dmy, MONTHS, normPhone, maskPhone, fullDate, ago } from '../core/format';
 import { pbkdf2, randomSalt, same } from '../core/crypto';
 import { lcFor, lcMine, payText, haqLabel, letter, payOn, radiusSub, traitTags, jobsLong, statusTags, whenText, daysText, locText } from './vm';
 import * as XLSX from 'xlsx';
@@ -224,9 +224,11 @@ function sheetHtml(under: string, s: Scr): string {
     case 'when': {
       const t = now();
       const day = p.day;
+      if (p.mode === 'cal') return U.whenCal(under, calVM(p));
+      if (p.mode === 'clock') return U.whenClock(under, day === 'Bugun');
       const base = day === 'Bugun' ? dayStart(t) : day === 'Ertaga' ? dayStart(t) + DAY_MS : day === 'Indinga' ? dayStart(t) + 2 * DAY_MS : p.other;
       const past = day === 'Bugun' ? ['07:00', '08:00', '09:00', '10:00', '12:00', '14:00', '16:00', '18:00'].filter((h) => dayStart(t) + hm(h) <= t) : [];
-      return U.whenSheet(under, { day, other: p.other ? dmy(p.other) : undefined, hour: p.hour, past, ready: !!base && !!p.hour && !past.includes(p.hour) });
+      return U.whenSheet(under, { day, other: p.other ? dmy(p.other) : undefined, hour: p.hour, past, ready: !!base && !!p.hour && base + hm(p.hour) > t });
     }
     case 'amount': {
       const quick = p.kind === 'soat' ? ['20 000', '30 000', '40 000', '50 000', '60 000'] : ['100 000', '150 000', '200 000', '250 000', '300 000'];
@@ -240,6 +242,19 @@ function sheetHtml(under: string, s: Scr): string {
     case 'pick': return U.pickSheet(under, esc(p.title), p.options.map((o: string) => esc(o)), p.icon);
   }
   return under;
+}
+/* Boshqa kun: kalendar (bugundan 60 kungacha) */
+const TZ5 = 5 * 3600e3;
+const monthOf = (t: number) => { const d = new Date(t + TZ5); return d.getUTCFullYear() * 12 + d.getUTCMonth(); };
+function calVM(p: any) {
+  const t0 = dayStart(now()); const max = t0 + 60 * DAY_MS;
+  const sel = p.day === 'Bugun' ? t0 : p.day === 'Ertaga' ? t0 + DAY_MS : p.day === 'Indinga' ? t0 + 2 * DAY_MS : p.other;
+  const cur0 = monthOf(t0);
+  const m = p.calM ?? cur0; const y = Math.floor(m / 12), mo = m % 12;
+  const first = Date.UTC(y, mo, 1) - TZ5; const len = new Date(Date.UTC(y, mo + 1, 0)).getUTCDate();
+  const cells: ({ n: number; ts: number; off: boolean; on: boolean; today: boolean } | null)[] = Array(weekday(first)).fill(null);
+  for (let i = 0; i < len; i++) { const ts = first + i * DAY_MS; cells.push({ n: i + 1, ts, off: ts < t0 || ts > max, on: ts === sel, today: ts === t0 }); }
+  const name = MONTHS[mo]; return { month: `${name[0].toUpperCase()}${name.slice(1)} ${y}`, prev: m > cur0, next: Date.UTC(y, mo + 1, 1) - TZ5 <= max, cells };
 }
 const hm = (h: string) => (Number(h.slice(0, 2)) * 60 + Number(h.slice(3))) * 60e3;
 
@@ -581,10 +596,25 @@ async function act(a: string, v: string | undefined, el: HTMLElement) {
     case 'psubmit': return submitPost();
     /* qachon */
     case 'wday': sheetS!.p.day = v; sheetS!.p.other = undefined; return render();
-    case 'wother': {
-      const d = await pickDate();
-      if (d) { sheetS!.p.day = 'other'; sheetS!.p.other = d; render(); }
+    case 'wother': { const p = sheetS!.p; p.mode = 'cal'; p.calM = p.other ? monthOf(p.other) : undefined; return render(); }
+    case 'wcalm': sheetS!.p.calM = (sheetS!.p.calM ?? monthOf(now())) + Number(v); return render();
+    case 'wdate': {
+      const p = sheetS!.p; const ts = Number(v); const d = Math.round((ts - dayStart(now())) / DAY_MS);
+      p.day = d === 0 ? 'Bugun' : d === 1 ? 'Ertaga' : d === 2 ? 'Indinga' : 'other'; p.other = d > 2 ? ts : undefined; p.mode = undefined; N.haptic.tap(); return render();
+    }
+    case 'wback': sheetS!.p.mode = undefined; return render();
+    case 'wclock': {
+      sheetS!.p.mode = 'clock'; render();
+      const [h, m] = (sheetS!.p.hour || '08:00').split(':').map(Number);
+      setTimeout(() => { const H = root.querySelector<HTMLElement>('[data-wheel="h"]'), M = root.querySelector<HTMLElement>('[data-wheel="m"]'); if (H) H.scrollTop = h * 44; if (M) M.scrollTop = m * 44; }, 0);
       return;
+    }
+    case 'wsnap': { const w = root.querySelector<HTMLElement>(`[data-wheel="${v![0]}"]`); w?.scrollTo({ top: Number(v!.slice(1)) * 44, behavior: 'smooth' }); return; }
+    case 'wclockok': {
+      const at = (k: string, n: number) => Math.min(n - 1, Math.max(0, Math.round((root.querySelector<HTMLElement>(`[data-wheel="${k}"]`)?.scrollTop || 0) / 44)));
+      const p = sheetS!.p; const hh = `${String(at('h', 24)).padStart(2, '0')}:${String(at('m', 60)).padStart(2, '0')}`;
+      if (p.day === 'Bugun' && dayStart(now()) + hm(hh) <= now()) { N.haptic.warn(); return N.alert('Bu vaqt o‘tib ketgan. Keyinroq vaqtni tanlang.'); }
+      p.hour = hh; p.mode = undefined; return render();
     }
     case 'whour': sheetS!.p.hour = v; return render();
     case 'wok': {
@@ -700,13 +730,6 @@ function whenInit(t?: number) {
   const n = now();
   const d = Math.round((dayStart(t) - dayStart(n)) / DAY_MS);
   return { day: d === 0 ? 'Bugun' : d === 1 ? 'Ertaga' : d === 2 ? 'Indinga' : 'other', other: d > 2 ? dayStart(t) : undefined, hour: hhmm(t) };
-}
-
-async function pickDate(): Promise<number | undefined> {
-  const t = now();
-  const days = Array.from({ length: 58 }, (_, i) => dayStart(t) + (i + 3) * DAY_MS);
-  const i = await choose('Boshqa kun', days.map((d) => `${dmy(d)}, ${['dushanba', 'seshanba', 'chorshanba', 'payshanba', 'juma', 'shanba', 'yakshanba'][weekday(d)]}`), 'cal');
-  return i >= 0 ? days[i] : undefined;
 }
 
 async function askPhone(u: User): Promise<boolean> {
