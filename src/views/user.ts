@@ -204,7 +204,10 @@ ${v.denied ? `<div class="note mt8">${v.denied === 'fail' ? 'Joylashuv aniqlanma
 ${v.regions ? `<div class="lbl">Viloyat yoki shahar</div>
 <div class="card">
 ${v.regions.map(([id, n]) => row('pin', n, I('chev'), undefined, 'vil', id)).join('')}
-</div>` : `${v.vil ? `<div class="lbl">${v.vil}</div>` : ''}
+</div>` : `${v.vil ? `<div class="lbl">Viloyat yoki shahar</div>
+<div class="card">${row('pin', v.vil, radio(true), undefined, 'vilopen')}</div>
+<div class="note mt10" style="color:var(--bluetext);font-weight:500"${A('vilopen')}>Boshqa viloyatni tanlash</div>
+<div class="lbl">Tuman yoki shahar</div>` : ''}
 <div class="card${v.vil ? '' : ' mt14'}">
 ${v.districts.map(([d, on, sub]) => `<div class="row"${A('district', d)}><div class="tile">${I('pin')}</div><div class="rt"><b>${d}</b>${sub ? `<small>${sub}</small>` : ''}</div>${radio(on)}</div>`).join('')}
 </div>${v.fold ? `<div class="note mt10" style="color:var(--bluetext);font-weight:500"${A('unfold')}>Boshqa tumanni tanlash</div>` : ''}`}

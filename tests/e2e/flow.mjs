@@ -53,7 +53,7 @@ await tap('back'); await expectScreen('region'); await has('Andijon viloyati');
 await fill('[data-in="rq"]', 'nukus'); await has('Nukus sh.'); await fill('[data-in="rq"]', '');
 for (const [la, lo, want] of [[39.6542, 66.9597, 'Samarqand sh.'], [40.3842, 71.7843, 'Farg‘ona sh.'], [42.46, 59.61, 'Nukus sh.'], [41.275, 69.204, 'Chilonzor']]) {
   await ctx.setGeolocation({ latitude: la, longitude: lo }); await tap('locate'); await p.waitForTimeout(300);
-  const on = await p.evaluate(() => document.querySelector('.radio.on')?.closest('.row')?.querySelector('b')?.textContent);
+  const on = await p.evaluate(() => [...document.querySelectorAll('[data-a="district"] .radio.on')].pop()?.closest('.row')?.querySelector('b')?.textContent);
   if (on !== want) errs.push(`lokatsiya ${la},${lo}: kutilgan ${want}, chiqdi ${on}`);
 }
 await shot('region-lokatsiya');

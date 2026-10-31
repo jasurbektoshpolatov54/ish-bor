@@ -8,7 +8,7 @@ export const RU: Record<string, string> = {
   'Bekor qilish': 'Отмена', 'Ortga': 'Назад', 'Qaytish': 'Вернуться', 'Yuborish': 'Отправить', 'Ha': 'Да', 'Yo‘q': 'Нет', 'OK': 'OK',
   'Ishonchingiz komilmi?': 'Вы уверены?', 'hozir': 'сейчас', 'kecha': 'вчера', 'kun': 'день', 'so‘m': 'сум', 'Bepul': 'Бесплатно',
   'Assalomu alaykum,': 'Здравствуйте,', 'Assalomu alaykum!': 'Здравствуйте!', 'Xush kelibsiz': 'Добро пожаловать',
-  'Halol mehnat,': 'Честный труд,', 'vositachisiz': 'без посредников', 'Halol mehnat, vositachisiz': 'Честный труд, без посредников', 'Boshqa tumanni tanlash': 'Выбрать другой район', 'Masofani belgilang.': 'Укажите расстояние.',
+  'Halol mehnat,': 'Честный труд,', 'vositachisiz': 'без посредников', 'Halol mehnat, vositachisiz': 'Честный труд, без посредников', 'Boshqa tumanni tanlash': 'Выбрать другой район', 'Masofani belgilang.': 'Укажите расстояние.', 'Boshqa viloyatni tanlash': 'Выбрать другую область', 'Tuman yoki shahar': 'Район или город',
   'Bir-biringizni to‘g‘ridan-to‘g‘ri toping.': 'Находите друг друга напрямую.',
   'Ishchi kerakmi? E’lon bering': 'Нужен работник? Подайте объявление', 'Ish qidiryapsizmi? O‘zingizni yozing': 'Ищете работу? Расскажите о себе',
   'Yaqin atrofda': 'Поблизости', 'Hozircha e’lon yo‘q': 'Пока нет объявлений', 'Birinchi bo‘lib e’lon joylang': 'Подайте объявление первым',

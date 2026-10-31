@@ -615,6 +615,7 @@ async function act(a: string, v: string | undefined, el: HTMLElement) {
     case 'play': { const dU = await N.loadVoice(v!); if (dU) N.play(dU); return; }
     /* hudud */
     case 'vil': s.p.vil = v; render(); return window.scrollTo(0, 0);
+    case 'vilopen': s.p.vil = undefined; s.p.fold = false; render(); return window.scrollTo(0, 0);
     case 'district': s.p.district = v; s.p.lat = undefined; s.p.lng = undefined; s.p.fold = true; s.p.q = ''; render(); return window.scrollTo(0, 0);
     case 'unfold': s.p.fold = false; return render();
     case 'radius': s.p.radius = s.p.radius === Number(v) ? undefined : Number(v); return render();
