@@ -13,7 +13,8 @@ const STORE = {
 const env = { STORE, BOT_TOKEN: TOKEN, WEBHOOK_SECRET: 's', APP_URL: 'https://x.github.io/ish-bor/', TOP_SOUM: '5000', STAR_USD: '0.02', TOP_DAYS: '7', USD_RATE_FALLBACK: '12500' };
 const calls = [];
 globalThis.fetch = async (u, o) => {
-  if (String(u).includes('cbu.uz')) return { ok: true, json: async () => [{ Ccy: 'USD', Rate: '12345.67', Date: '31.10.2026' }] };
+  if (String(u).includes('cbu.uz')) { if (globalThis.cbuDown) throw new Error('522'); return { ok: true, json: async () => [{ Ccy: 'USD', Rate: '12345.67', Date: '31.10.2026' }] }; }
+  if (String(u).includes('currency-api')) return { ok: true, json: async () => ({ date: '2026-10-31', usd: { uzs: 12600.123 } }) };
   const m = String(u).split('/').pop(); const b = JSON.parse(o.body); calls.push([m, b]);
   return { json: async () => ({ ok: true, result: m === 'createInvoiceLink' ? 'https://t.me/$inv' : m === 'getMyStarBalance' ? { amount: 21 } : true }) };
 };
@@ -64,4 +65,8 @@ await req('/tg', { message: { message_id: 5, chat: { id: 7 }, from: { id: 7 }, t
 assert.ok(calls.some((c) => c[0] === 'refundStarPayment' && c[1].telegram_payment_charge_id === 'ch1'));
 await req('/tg', { message: { message_id: 6, chat: { id: 7 }, from: { id: 7 }, text: '/start' } }, H);
 assert.equal(calls.at(-1)[1].reply_markup.inline_keyboard[0][0].web_app.url, env.APP_URL);
+// cbu.uz ochilmasa: ochiq kurs manbasi
+kv.delete('rate'); globalThis.cbuDown = true;
+const n2 = await (await req('/narx')).json();
+assert.equal(n2.rateSrc, 'fx'); assert.equal(n2.rate, 12600.12); assert.equal(n2.stars, 20);
 console.log('worker: hammasi to‘g‘ri');

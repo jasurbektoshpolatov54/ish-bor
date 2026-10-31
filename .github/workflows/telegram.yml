@@ -57,12 +57,12 @@ jobs:
           if [ -z "$KV" ]; then KV=$(cf -X POST "$CF/accounts/$ACC/storage/kv/namespaces" -d '{"title":"mehnat-bot"}' | jq -r '.result.id // empty'); fi
           if [ -z "$KV" ]; then echo "::error::KV ombori ochilmadi"; exit 1; fi
           # MB kursi: Cloudflare'dan cbu.uz ba'zan ochilmaydi, shuning uchun bugungi kursni shu yerdan ham yozib qo'yamiz.
-          J=$(curl -sS --max-time 20 https://cbu.uz/uz/arkhiv-kursov-valyut/json/USD/ || true)
+          J=$(curl -sS --max-time 8 https://cbu.uz/uz/arkhiv-kursov-valyut/json/USD/ || true)
           RATE=$(echo "$J" | jq -r '.[0].Rate // empty' 2>/dev/null || true)
           if [ -n "$RATE" ]; then
             DAY=$(TZ=Asia/Tashkent date +%F)
             cf -X PUT "$CF/accounts/$ACC/storage/kv/namespaces/$KV/values/rate" -H 'Content-Type: text/plain' \
-              --data "$(jq -nc --arg d "$DAY" --argjson r "$RATE" --arg t "$(echo "$J" | jq -r '.[0].Date')" '{day:$d, rate:$r, date:$t}')" | jq -c '{success}'
+              --data "$(jq -nc --arg d "$DAY" --argjson r "$RATE" --arg t "$(echo "$J" | jq -r '.[0].Date')" '{day:$d, rate:$r, date:$t, src:"cbu"}')" | jq -c '{success}'
           else echo "::warning::cbu.uz kursi olinmadi"; fi
           OWNER="${GITHUB_REPOSITORY%%/*}"; NAME="${GITHUB_REPOSITORY#*/}"
           cat > worker/wrangler.toml <<EOT

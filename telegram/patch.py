@@ -59,10 +59,10 @@ if os.environ.get('STARS_API'):
         SO = "${v.price}${v.price.startsWith('⭐') ? '' : ' so‘m'}"
         s = s.replace("export interface PayVM { icon: string; title: string; days: number; price: string;", "export interface PayVM { icon: string; title: string; days: number; price: string; soum?: string;", 1)
         s = s.replace("${row('wallet', 'Summa', `<b style=\"color:var(--text);font-size:16px\">${v.price} so‘m</b>`)}",
-                      "${row('wallet', 'Summa', `<b style=\"color:var(--text);font-size:16px\">" + SO + "</b>`, v.soum ? `${v.soum} so‘m · MB kursi` : undefined)}", 1)
+                      "${row('wallet', 'Summa', `<b style=\"color:var(--text);font-size:16px\">" + SO + "</b>`, v.soum || undefined)}", 1)
         s = s.replace("To‘lash — ${v.price} so‘m", "To‘lash — " + SO, 1)
         s = s.replace("${row('wallet', 'To‘landi', `${v.price} so‘m`)}", "${row('wallet', 'To‘landi', `" + SO + "`)}", 1)
         return s
     edit('src/views/user.ts', view)
-    edit('src/ui/ru-dict.ts', lambda s: s.replace("export const RU: Record<string, string> = {", "export const RU: Record<string, string> = {\n  'MB kursi': 'по курсу ЦБ', 'Telegram Stars': 'Telegram Stars',", 1))
+    edit('src/ui/ru-dict.ts', lambda s: s.replace("export const RU: Record<string, string> = {", "export const RU: Record<string, string> = {\n  'MB kursi': 'по курсу ЦБ', 'dollar kursi': 'по курсу доллара', 'Telegram Stars': 'Telegram Stars',", 1))
     edit('src/ui/cyr.ts', lambda s: s.replace("const BR = ['Payme',", "const BR = ['Telegram', 'Stars', 'Payme',", 1).replace("if (w === 'km') return 'км';", "if (w === 'km') return 'км';\n  if (w === 'MB') return 'МБ';", 1))

@@ -125,7 +125,7 @@
     loadNarx();
     var soum = function (n) { var p = n.toFixed(2).split('.'); return p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ',' + p[1]; };
     api.starsLabel = function () { return '⭐ ' + (narx ? narx.stars : '…'); };
-    api.starsSoum = function () { return narx ? soum(narx.soum) : undefined; };
+    api.starsSoum = function () { return narx ? soum(narx.soum) + ' so‘m · ' + (narx.rateSrc === 'cbu' ? 'MB kursi' : 'dollar kursi') : undefined; };
     // To'lov: server hisob ochadi, Telegram o'z oynasida to'lov oladi. Natija: paid | cancelled | failed | pending
     api.stars = function (order) {
       return fetch(STARS_API + '/invoice', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: w.initData, order: order }) })

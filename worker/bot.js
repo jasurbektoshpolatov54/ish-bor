@@ -26,28 +26,38 @@ export async function checkInitData(initData, token, maxAgeSec = 86400, nowSec =
   try { return JSON.parse(p.get('user') || 'null'); } catch { return null; }
 }
 
-/** Markaziy bank dollar kursi (kuniga bir marta yangilanadi). */
+/** Dollar kursi. Avval Markaziy bank (cbu.uz); u chet eldan ko'pincha ochilmaydi,
+ *  shunda ochiq valyuta kursi manbasi ishlatiladi (src: 'cbu' yoki 'fx'). Kuniga bir marta yangilanadi. */
 async function usdRate(env) {
   const day = new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10); // Toshkent vaqti
   const c = await env.STORE.get('rate', 'json');
-  if (c && c.day === day) return c;
+  if (c && c.day === day && (c.src === 'cbu' || Date.now() - (c.tried || 0) < 3600e3)) return c;
+  const get = async (u, ms) => {
+    const r = await fetch(u, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; MehnatBot/1.0)', Accept: 'application/json' }, signal: AbortSignal.timeout(ms) });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  };
   const errs = [];
-  for (const u of ['https://cbu.uz/uz/arkhiv-kursov-valyut/json/USD/', 'https://cbu.uz/ru/arkhiv-kursov-valyut/json/USD/', 'https://nbu.uz/uz/exchange-rates/json/']) {
+  try {
+    const j = await get('https://cbu.uz/uz/arkhiv-kursov-valyut/json/USD/', 4000);
+    const usd = (Array.isArray(j) ? j : []).find((x) => x.Ccy === 'USD');
+    const rate = Number(String(usd && usd.Rate).replace(',', '.'));
+    if (!(rate > 1000)) throw new Error('kurs topilmadi');
+    const v = { day, rate, date: usd.Date, src: 'cbu', tried: Date.now() };
+    await env.STORE.put('rate', JSON.stringify(v));
+    return v;
+  } catch (e) { errs.push('cbu: ' + (e && e.message || e)); }
+  for (const u of ['https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json', 'https://latest.currency-api.pages.dev/v1/currencies/usd.json']) {
     try {
-      const r = await fetch(u, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; MehnatBot/1.0)', Accept: 'application/json' }, cf: { cacheTtl: 3600 } });
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      const j = await r.json();
-      const arr = Array.isArray(j) ? j : [];
-      // cbu.uz: {Ccy, Rate, Date}; nbu.uz: {code, cb_price, date} — ikkalasida ham Markaziy bank kursi
-      const usd = arr.find((x) => x.Ccy === 'USD' || x.code === 'USD');
-      const rate = Number(String(usd && (usd.Rate ?? usd.cb_price)).replace(/\s/g, '').replace(',', '.'));
+      const j = await get(u, 5000);
+      const rate = Number(j && j.usd && j.usd.uzs);
       if (!(rate > 1000)) throw new Error('kurs topilmadi');
-      const v = { day, rate, date: usd.Date || usd.date || '' };
+      const v = { day, rate: Math.round(rate * 100) / 100, date: j.date || '', src: 'fx', tried: Date.now() };
       await env.STORE.put('rate', JSON.stringify(v));
       return v;
-    } catch (e) { errs.push(String(e && e.message || e)); }
+    } catch (e) { errs.push('fx: ' + (e && e.message || e)); }
   }
-  return c ? { ...c, err: errs.join('; ') } : { day, rate: Number(env.USD_RATE_FALLBACK || 12500), date: '', err: errs.join('; ') };
+  return c ? { ...c, err: errs.join('; ') } : { day, rate: Number(env.USD_RATE_FALLBACK || 12500), date: '', src: 'zaxira', err: errs.join('; ') };
 }
 
 /** TOP narxi: so'mdagi narxdan biroz yuqori bo'ladigan butun yulduz soni va uning so'mdagi aniq qiymati. */
@@ -59,7 +69,7 @@ export function priceFor(topSoum, starUsd, rate) {
 }
 async function price(env) {
   const r = await usdRate(env);
-  return { ...priceFor(Number(env.TOP_SOUM || 5000), Number(env.STAR_USD || 0.02), r.rate), days: Number(env.TOP_DAYS || 7), rate: r.rate, rateDate: r.date, ...(r.err ? { rateErr: r.err } : {}) };
+  return { ...priceFor(Number(env.TOP_SOUM || 5000), Number(env.STAR_USD || 0.02), r.rate), days: Number(env.TOP_DAYS || 7), rate: r.rate, rateDate: r.date, rateSrc: r.src, ...(r.err ? { rateErr: r.err } : {}) };
 }
 
 async function tg(env, method, body) {
