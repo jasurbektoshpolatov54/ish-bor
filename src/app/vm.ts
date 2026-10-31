@@ -6,12 +6,13 @@ import { db, now, userById } from './store';
 import { title, jobIcon, jobName, isTop, distanceTo, genderLabel, personTitle } from '../core/rules';
 import { money, dist, ago, dayName, hhmm, whenLabel, daysLabel } from '../core/format';
 import { RADII, TRAITS_3P } from '../core/seed';
+import { flags } from '../core/flags';
 
 export const payText = (l: Listing) => (l.payType === 'kelishiladi' || !l.pay ? 'Kelishiladi' : money(l.pay));
 export const payUnit = (l: Listing) => (l.payType === 'kun' ? 'so‘m/kun' : l.payType === 'soat' ? 'so‘m/soat' : '');
 export const haqLabel = (l: Listing) => (l.payType === 'kun' ? 'Haq / kun' : l.payType === 'soat' ? 'Haq / soat' : 'Haq');
 export const letter = (u?: User) => (u?.name?.trim()?.[0] || '').toUpperCase();
-export const payOn = () => !db.settings.paymentsOff;
+export const payOn = () => flags.tolov && !db.settings.paymentsOff;
 
 export function locText(l: Listing, viewer?: User) {
   const d = distanceTo(db, viewer, l);

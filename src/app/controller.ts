@@ -11,6 +11,7 @@ import { toRuDom, setRuPlaces } from '../ui/ru';
 import * as N from './native';
 import { db, load, save, flush, now, uid, me, owner, userById, listingById, isAdminPhone, audit, note, outbox, myListings, replace, TEST_BUILD, ADMIN, ensureAdmin } from './store';
 import { REGIONS } from '../core/places';
+import { flags } from '../core/flags';
 import { freshDB, PAY_APPS, RADII, TRAITS, REASONS, REJECT_REASONS, JOB_TYPES } from '../core/seed';
 import { search, title, jobIcon, jobName, isTop, suspicious, complaintTrigger, closeAt, pauseTop, resumeTop, extendTop, genderLabel, nearestDistrict, keepStep, norm, personTitle, isPublic, codeRules } from '../core/rules';
 import { money, dayStart, DAY_MS, hhmm, weekday, dmy, MONTHS, normPhone, maskPhone, fullDate, ago } from '../core/format';
@@ -276,7 +277,7 @@ function queueItems(): QEntry[] {
     const serious = complaintTrigger(db, lid);
     out.push({ id: 'c:' + lid, type: 1, tag: serious ? ['Jiddiy', 'red'] : ['Shikoyat', ''], title: REASONS[cs[0].reason], sub: `${esc(title(db, l))} · ${l.district}`, at: cs[0].at });
   }
-  for (const p of db.payments.filter((p) => p.status === 'kutilmoqda' && t - p.at > 60e3)) out.push({ id: 'p:' + p.id, type: 2, tag: ['To‘lov · 60 s o‘tdi', 'blue2'], title: p.order, sub: `${money(p.amount)} so‘m · ${appName(p.app)}`, at: p.at });
+  if (flags.tolov) for (const p of db.payments.filter((p) => p.status === 'kutilmoqda' && t - p.at > 60e3)) out.push({ id: 'p:' + p.id, type: 2, tag: ['To‘lov · 60 s o‘tdi', 'blue2'], title: p.order, sub: `${money(p.amount)} so‘m · ${appName(p.app)}`, at: p.at });
   for (const l of db.listings.filter((l) => l.status === 'tekshirilmoqda' && l.reviewReason === 'shubhali')) out.push({ id: 'l:' + l.id, type: 3, tag: ['Shubhali e’lon', ''], title: esc(title(db, l)), sub: l.district, at: l.createdAt });
   for (const m of db.support.filter((m) => !m.answered)) out.push({ id: 's:' + m.id, type: 4, tag: ['Savol', 'blue2'], title: esc(m.text.slice(0, 40)), sub: esc(userById(m.userId)?.name || ''), at: m.at });
   return out.sort((a, b) => b.at - a.at);
@@ -307,12 +308,12 @@ function adminHtml(s: Scr): string {
       const topD = topDistrict(activeU);
       return AD.today({
         clock: c, problems: q.length, dateLine: db.users.length ? `${dmy(t)}, ${['dushanba', 'seshanba', 'chorshanba', 'payshanba', 'juma', 'shanba', 'yakshanba'][weekday(t)]}` : 'Hali hech kim yo‘q',
-        waiting: String(q.length), waitingSub: q.length ? [`${cnts[0]} shikoyat`, `${cnts[1]} to‘lov`, `${cnts[2]} savol`].join(' · ') : 'Hech narsa kutmayapti',
+        waiting: String(q.length), waitingSub: q.length ? [`${cnts[0]} shikoyat`, ...(flags.tolov ? [`${cnts[1]} to‘lov`] : []), `${cnts[2]} savol`].join(' · ') : 'Hech narsa kutmayapti',
         newL: String(newToday.length), newSub: `Ish bor ${newToday.filter((l) => l.kind === 'bor').length} · Ish kerak ${newToday.filter((l) => l.kind === 'kerak').length}`,
         found: String(db.listings.filter((l) => l.status === 'yopilgan' && (l.closedAt || 0) >= ds).length),
         users: String(usersToday), usersSub: usersToday || usersY ? `${usersToday - usersY >= 0 ? '+' : ''}${usersToday - usersY} kechaga nisbatan` : '—',
         active: String(activeU.length), activeSub: topD || '—',
-        income: money(inc), incomeBar: inc ? 100 : 0, incomeSub: pays.length ? `${pays.length} ta TOP · ${money(db.settings.topPrice)} so‘mdan` : 'Hali TOP yo‘q',
+        tolov: flags.tolov, income: money(inc), incomeBar: inc ? 100 : 0, incomeSub: pays.length ? `${pays.length} ta TOP · ${money(db.settings.topPrice)} so‘mdan` : 'Hali TOP yo‘q',
         bars: days.map((d) => (mx ? Math.max(4, Math.round((d / mx) * 64)) : 4)), barsToday: mx > 0, barsSub: mx ? `Bugun ${days[6]} ta` : 'Ma’lumot hali yo‘q',
       });
     }
@@ -320,7 +321,7 @@ function adminHtml(s: Scr): string {
       const all = queueItems();
       const tab = ui.qtab || 0;
       const counts = [all.length, ...[1, 2, 3, 4].map((k) => all.filter((x) => x.type === k).length)];
-      return AD.queue({ clock: c, total: all.length, counts, tab, items: all.filter((x) => tab === 0 || x.type === tab) });
+      return AD.queue({ clock: c, total: all.length, counts, tab, tolov: flags.tolov, items: all.filter((x) => tab === 0 || x.type === tab) });
     }
     case 'aH': return qDetailHtml(s.p, c);
     case 'aD': {
@@ -336,7 +337,7 @@ function adminHtml(s: Scr): string {
         return true;
       });
       const rows = users.map((u) => `<div class="row"${A('uopen', u.id)}><div class="tile">${letter(u) || I('user')}</div><div class="rt"><b>${esc(u.name)}${db.listings.some((l) => l.owner === u.id && isTop(l, t)) ? ' <span class="tag blue">TOP</span>' : ''}${u.blocked ? ' <span class="tag red">Bloklangan</span>' : ''}</b><small>${maskPhone(u.phone)} · ${u.district || '—'} · ${roleName(u)}</small></div><div class="rv">${I('chev')}</div></div>`).join('');
-      return AD.people({ clock: c, q: ui.pq || '', tab, total: db.users.length, rows });
+      return AD.people({ clock: c, q: ui.pq || '', tolov: flags.tolov, tab, total: db.users.length, rows });
     }
     case 'aI': {
       const u = userById(s.p)!;
@@ -348,12 +349,11 @@ function adminHtml(s: Scr): string {
         row('brief', 'E’lonlari', `${ls.filter((l) => l.status === 'faol').length} / ${ls.length}`, undefined, 'ulist', u.id),
         row('flag', 'Shikoyatlar', String(cs), 'Oxirgi 24 soat'),
         row('check', 'Odam topdim', String(ls.filter((l) => l.status === 'yopilgan' && l.kind === 'bor').length)),
-        row('bolt', 'TOP', top ? dmy(top.topUntil!) : '—'),
-        row('wallet', 'To‘lovlar', `${ps.length} · ${money(ps.reduce((a, p) => a + p.amount, 0))}`, ps.length ? [...new Set(ps.map((p) => appName(p.app)))].join(', ') : 'Qaysi ilova orqali'),
+        ...(flags.tolov ? [row('bolt', 'TOP', top ? dmy(top.topUntil!) : '—'), row('wallet', 'To‘lovlar', `${ps.length} · ${money(ps.reduce((a, p) => a + p.amount, 0))}`, ps.length ? [...new Set(ps.map((p) => appName(p.app)))].join(', ') : 'Qaysi ilova orqali')] : []),
         row('clock', 'Qachondan beri', dmy(u.createdAt), `Roli: ${roleName(u)}`),
         row('phone', 'Telefon', ui.showPhone === u.id ? (u.phone || '—') : 'Ko‘rsatish', undefined, 'ushowphone', u.id),
       ].join('\n');
-      return AD.person({ clock: c, letter: letter(u) || I('user'), name: esc(u.name + (u.surname ? ' ' + u.surname : '')), phone: `${maskPhone(u.phone)} · ${u.district || '—'}`, id: u.id, rows, blocked: !!u.blocked, verified: !!u.verified });
+      return AD.person({ clock: c, letter: letter(u) || I('user'), name: esc(u.name + (u.surname ? ' ' + u.surname : '')), phone: `${maskPhone(u.phone)} · ${u.district || '—'}`, id: u.id, rows, blocked: !!u.blocked, verified: !!u.verified, tolov: flags.tolov });
     }
     case 'aE': {
       const ms = new Date(t + 5 * 3600e3); ms.setUTCDate(1); ms.setUTCHours(0, 0, 0, 0);
@@ -377,7 +377,7 @@ function adminHtml(s: Scr): string {
       const act = db.listings.filter((l) => isPublic(db, l, t));
       const tops = act.filter((l) => isTop(l, t));
       const lastAuto = db.auto[0];
-      return AD.more({ clock: c, active: String(act.length), activeSub: `Ish bor ${act.filter((l) => l.kind === 'bor').length} · Ish kerak ${act.filter((l) => l.kind === 'kerak').length}`, tops: String(tops.length), topsSub: tops.length ? `${tops.length} ta e’lon ro‘yxat boshida` : '—', autoSub: lastAuto ? `${ago(lastAuto.at, t)} · ${lastAuto.rule}` : 'Hali amal yo‘q', price: `${money(db.settings.topPrice)} so‘m / ${db.settings.topDays} kun`, test: TEST_BUILD });
+      return AD.more({ clock: c, active: String(act.length), activeSub: `Ish bor ${act.filter((l) => l.kind === 'bor').length} · Ish kerak ${act.filter((l) => l.kind === 'kerak').length}`, tops: String(tops.length), topsSub: tops.length ? `${tops.length} ta e’lon ro‘yxat boshida` : '—', autoSub: lastAuto ? `${ago(lastAuto.at, t)} · ${lastAuto.rule}` : 'Hali amal yo‘q', price: `${money(db.settings.topPrice)} so‘m / ${db.settings.topDays} kun`, test: TEST_BUILD, tolov: flags.tolov });
     }
     case 'aG': {
       const r = codeRules(ui.gnew || '');
@@ -390,7 +390,7 @@ function adminHtml(s: Scr): string {
       return AD.broadcast({ clock: c, to: ui.lto || 'all', script: ui.lscr || 'both', count: n, ready: !!(ui.ltext || '').trim() && n > 0, district: ui.ldist, districts: db.districts.filter((d) => d.enabled).map((d) => d.name) });
     }
     case 'aM': return AD.price(c, ui.mprice ?? String(db.settings.topPrice), ui.mdays ?? String(db.settings.topDays), (ui.mprice != null && Number(ui.mprice) !== db.settings.topPrice) || (ui.mdays != null && Number(ui.mdays) !== db.settings.topDays));
-    case 'aN': return AD.emergency(c, db.settings);
+    case 'aN': return AD.emergency(c, db.settings, flags.tolov);
     case 'aO': {
       const tab = ui.otab || 0;
       const rows = db.logins.filter((l) => tab === 0 || !l.ok).slice(0, 50).map((l) => `<div class="row"><div class="tile">${I(l.ok ? 'check' : 'info')}</div><div class="rt"><b>${l.ok ? 'Kirdi' : 'Xato kod'}</b><small>${fullDate(l.at)} · ${l.device}</small></div></div>`).join('');
@@ -398,7 +398,7 @@ function adminHtml(s: Scr): string {
     }
     case 'aP': {
       const rows = db.auto.slice(0, 50).map((a) => { const l = listingById(a.listingId); return `<div class="row"><div class="tile">${I('chat')}</div><div class="rt"><b>${a.rule}</b><small>${esc(l ? title(db, l) : '—')} · ${ago(a.at, t)}</small></div><div class="rv">${a.undone ? 'Bekor qilindi' : `<span${A('pundo', a.id)} style="color:var(--bluetext)">↩ Bekor qilish</span>`}</div></div>`; }).join('');
-      return AD.autoActs(c, rows);
+      return AD.autoActs(c, rows, flags.tolov);
     }
     case 'aQ': return AD.regions(c, db.districts.map((d) => [d.name, d.enabled]), !!ui.qall, db.jobTypes.map((j) => [j.id, j.name, !!j.hidden]));
     case 'aR': {
@@ -407,7 +407,7 @@ function adminHtml(s: Scr): string {
       const q = norm(ui.rsq || '');
       const sel = act.filter((l) => (tab === 2 ? isTop(l, t) : l.kind === (tab === 0 ? 'bor' : 'kerak'))).filter((l) => !q || norm(title(db, l) + ' ' + l.district + ' ' + (l.izoh || '')).includes(q));
       const cards = sel.map((l) => lc({ ...lcFor(l, undefined, 'list'), a: 'ropen', v: l.id })).join('\n');
-      return AD.actives(c, tab, [String(act.filter((l) => l.kind === 'bor').length), String(act.filter((l) => l.kind === 'kerak').length), String(act.filter((l) => isTop(l, t)).length)], ui.rsq || '', cards);
+      return AD.actives(c, tab, [String(act.filter((l) => l.kind === 'bor').length), String(act.filter((l) => l.kind === 'kerak').length), String(act.filter((l) => isTop(l, t)).length)], ui.rsq || '', cards, flags.tolov);
     }
     case 'aS': return AD.sinov(c, actingIndex());
   }
@@ -683,11 +683,12 @@ async function act(a: string, v: string | undefined, el: HTMLElement) {
       deleteListing(l); N.haptic.ok(); stack.pop(); return render(true);
     }
     case 'repost': return repost(v || s.p);
-    case 'top': return go('tarif', v || s.p);
-    case 'topgo': return go('pay', { id: s.p, app: u.lastPayApp || 'payme', state: 'tanlash' });
-    case 'payapp': if (s.p.state !== 'kutish') { s.p.app = v; render(); } return;
-    case 'paygo': return payGo();
-    case 'payreopen': return paySimulate(s.p.paymentId);
+    // To‘lov kaliti o‘chiq bo‘lsa (core/flags.ts) TOP va to‘lov oynalari ochilmaydi.
+    case 'top': return flags.tolov ? go('tarif', v || s.p) : undefined;
+    case 'topgo': return flags.tolov ? go('pay', { id: s.p, app: u.lastPayApp || 'payme', state: 'tanlash' }) : undefined;
+    case 'payapp': if (flags.tolov && s.p.state !== 'kutish') { s.p.app = v; render(); } return;
+    case 'paygo': return flags.tolov ? payGo() : undefined;
+    case 'payreopen': return flags.tolov ? paySimulate(s.p.paymentId) : undefined;
     case 'retry': return boot2();
     case 'admin': if (isAdminPhone(u)) { ui.acode = ''; ui.aerr = false; go('aLogin'); setTimeout(() => root.querySelector<HTMLInputElement>('[data-in="acode"]')?.focus(), 300); } return;
     case 'actown': return actAs(0);
@@ -921,15 +922,15 @@ async function adminAct(a: string, v?: string) {
     case 'aclose': stack.pop(); ui.acode = ''; return render();
     case 'alogin': return adminLogin();
     case 'aexit': return exitAdmin();
-    case 'anav': { while (stack.length && stack[stack.length - 1].n.startsWith('a') && stack[stack.length - 1].n !== 'aLogin') stack.pop(); stack.push({ n: ADMIN_ROOT[v!] }); render(true); return; }
-    case 'go': if (v === 'T') { ui.rtab = 2; return goA('aR', 2); } if (v === 'R') ui.rtab = 0; if (v === 'G') { ui.gcur = ui.gnew = ui.grep = ''; ui.gerr = ''; } if (v === 'M') { ui.mprice = ui.mdays = undefined; } if (v === 'L') { ui.ltext = ''; } return goA('a' + v);
+    case 'anav': { if (!flags.tolov && v === 'p') return; while (stack.length && stack[stack.length - 1].n.startsWith('a') && stack[stack.length - 1].n !== 'aLogin') stack.pop(); stack.push({ n: ADMIN_ROOT[v!] }); render(true); return; }
+    case 'go': if (!flags.tolov && (v === 'T' || v === 'M')) return; if (v === 'T') { ui.rtab = 2; return goA('aR', 2); } if (v === 'R') ui.rtab = 0; if (v === 'G') { ui.gcur = ui.gnew = ui.grep = ''; ui.gerr = ''; } if (v === 'M') { ui.mprice = ui.mdays = undefined; } if (v === 'L') { ui.ltext = ''; } return goA('a' + v);
     case 'qtab': ui.qtab = Number(v); return render();
     case 'qopen': return goA('aH', v);
     case 'ptab': ui.ptab = Number(v); return render();
     case 'uopen': ui.showPhone = undefined; return goA('aI', v);
     case 'ushowphone': ui.showPhone = v; audit('Telefon ko‘rildi', v); save(); return render();
     case 'ulist': ui.rsq = userById(v)?.name || ''; ui.rtab = 0; return goA('aR', 0);
-    case 'popen': return goA('aJ', v);
+    case 'popen': if (!flags.tolov) return; return goA('aJ', v);
     case 'otab': ui.otab = Number(v); return render();
     case 'rtab': ui.rtab = Number(v); return render();
     case 'ropen': return listingMenu(v!);
@@ -953,6 +954,7 @@ async function adminAct(a: string, v?: string) {
       save(); stack.pop(); render(); return flushNotes();
     }
     case 'jcheck': {
+      if (!flags.tolov) return;
       const pid = s.n === 'aJ' ? s.p : v!;
       const p = db.payments.find((x) => x.id === pid)!;
       if (p.status !== 'kutilmoqda') return N.alert(`Holati: ${p.status === 'otdi' ? 'o‘tdi' : p.status === 'qaytarildi' ? 'qaytarildi' : 'o‘tmadi'}`);
@@ -962,6 +964,7 @@ async function adminAct(a: string, v?: string) {
     case 'mkab': return N.alert('Sinov APK’sida Multicard kabineti yo‘q. Shartnomadan keyin mini app’da ochiladi.');
     case 'receipt': return N.alert('Sinov to‘lovida chek bo‘lmaydi.');
     case 'jrefund': {
+      if (!flags.tolov) return;
       const p = db.payments.find((x) => x.id === s.p)!;
       if (!(await N.confirm('Pulni qaytarish', 'Ishonchingiz komilmi?'))) return;
       p.status = 'qaytarildi';
@@ -969,10 +972,11 @@ async function adminAct(a: string, v?: string) {
       if (l?.topUntil) { l.topUntil = Math.max(t, l.topUntil - p.days * DAY_MS); if (l.topUntil <= t) l.topUntil = undefined; }
       audit('Pul qaytarildi', p.order, 'otdi', 'qaytarildi'); save(); return render();
     }
-    case 'excel': return exportExcel();
+    case 'excel': if (!flags.tolov) return; return exportExcel();
     case 'uwarn': return warnUser(s.p);
     case 'uhide': { const ls = db.listings.filter((l) => l.owner === s.p && l.status === 'faol'); const i = await choose('Yashirish', ['1 kun', '3 kun', '5 kun']); if (i < 0) return; ls.forEach((l) => { l.status = 'yashirin'; l.hiddenUntil = t + [1, 3, 5][i] * DAY_MS; }); audit(`Odam e’lonlari yashirildi (${[1, 3, 5][i]} kun)`, s.p); save(); return render(); }
     case 'utop': {
+      if (!flags.tolov) return;
       const ls = db.listings.filter((l) => l.owner === s.p && l.status === 'faol');
       if (!ls.length) return N.alert('Faol e’loni yo‘q.');
       const li = ls.length > 1 ? await choose('Qaysi e’lon', ls.map((l) => title(db, l))) : 0;
@@ -1015,6 +1019,7 @@ async function adminAct(a: string, v?: string) {
       ui.ltext = ''; stack.pop(); return render();
     }
     case 'msave': {
+      if (!flags.tolov) return;
       const p = Number(ui.mprice ?? db.settings.topPrice), d = Number(ui.mdays ?? db.settings.topDays);
       if (!(p >= 1000 && p <= 1_000_000 && d >= 1 && d <= 60)) return N.alert('Narx 1 000 – 1 000 000 so‘m, muddat 1–60 kun bo‘lsin.');
       audit('TOP narxi o‘zgardi', undefined, `${db.settings.topPrice} / ${db.settings.topDays}`, `${p} / ${d}`);
@@ -1212,7 +1217,7 @@ export async function tick() {
       db.auto.unshift({ id: uid('a'), at: t, rule: '“Qachon” o‘tdi → yopildi', listingId: l.id, prev: 'faol' });
       note(l.owner, 'E’loningiz yopildi. Hali kerak bo‘lsa — qayta joylang.', ['Qayta joylash'], 'my');
     }
-    if (l.topUntil && l.status === 'faol') {
+    if (flags.tolov && l.topUntil && l.status === 'faol') {
       if (l.topUntil > t && l.topUntil - t <= DAY_MS && n.soon !== l.topUntil) { n.soon = l.topUntil; note(l.owner, 'TOP ertaga tugaydi. Uzaytirasizmi?', ['Uzaytirish'], `top_${l.id}`); }
       if (l.topUntil <= t && n.end !== l.topUntil) {
         n.end = l.topUntil;
@@ -1264,7 +1269,7 @@ function scheduleFuture() {
   for (const l of db.listings.filter((x) => x.status === 'faol')) {
     const add = (at: number, text: string, p?: string) => { if (at > t && at - t < 60 * DAY_MS) { const nid = id++; scheduled.push(nid); void N.notify('Ish bor', text, { p: p || '', to: l.owner }, false, at - off, nid); } };
     if (l.kind === 'bor' && l.when) add(closeAt(l)!, 'E’loningiz yopildi. Hali kerak bo‘lsa — qayta joylang.', 'my');
-    if (l.topUntil && l.topUntil > t) { add(l.topUntil - DAY_MS, 'TOP ertaga tugaydi. Uzaytirasizmi?', `top_${l.id}`); add(l.topUntil, 'TOP muddati tugadi. E’loningiz oddiy tartibda turibdi.'); }
+    if (flags.tolov && l.topUntil && l.topUntil > t) { add(l.topUntil - DAY_MS, 'TOP ertaga tugaydi. Uzaytirasizmi?', `top_${l.id}`); add(l.topUntil, 'TOP muddati tugadi. E’loningiz oddiy tartibda turibdi.'); }
     // “Tursinmi?” savollari ilova yopiq bo‘lsa ham keladi; keyin ilova ularni qayta yubormaydi (ks0..ks2).
     const n = (l.notified ||= {});
     const asks: [number, string][] = l.kind === 'bor'
@@ -1285,7 +1290,7 @@ function onNotification(p?: string, actionId?: string, extra?: Record<string, st
     return render();
   }
   if (p === 'my') return reset('profile');
-  if (k === 'top' && listingById(id)) { stack = [{ n: 'profile' }, { n: 'tarif', p: id }]; return render(true); }
+  if (flags.tolov && k === 'top' && listingById(id)) { stack = [{ n: 'profile' }, { n: 'tarif', p: id }]; return render(true); }
   if (k === 'listing' && listingById(id)) return openListing(id);
   if (k === 'busy' && listingById(id)) { stack = [{ n: 'profile' }, { n: 'mykerak', p: id }]; return render(true); }
   if (k === 'keep' && listingById(id)) { const l = listingById(id)!; stack = [{ n: 'profile' }, { n: l.kind === 'bor' ? 'mybor' : 'mykerak', p: id }]; return render(true); }

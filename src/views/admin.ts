@@ -27,7 +27,7 @@ ${v.locked ? `<div class="btn gold mt16" style="opacity:.45;box-shadow:none">${I
 export interface TodayVM {
   clock: string; problems: number; dateLine: string; waiting: string; waitingSub: string;
   newL: string; newSub: string; found: string; users: string; usersSub: string; active: string; activeSub: string;
-  income: string; incomeBar: number; incomeSub: string; bars: number[]; barsToday: boolean; barsSub: string;
+  tolov: boolean; income: string; incomeBar: number; incomeSub: string; bars: number[]; barsToday: boolean; barsSub: string;
 }
 export const today = (v: TodayVM) => `${bg}
 ${xhdr('Nazorat', undefined, v.clock)}
@@ -40,11 +40,11 @@ ${xhdr('Nazorat', undefined, v.clock)}
 <div class="st2"><b>${v.users}</b><small>Yangi foydalanuvchi</small><em>${v.usersSub}</em></div>
 <div class="st2"><b>${v.active}</b><small>Hozir faol</small><em>${v.activeSub}</em></div>
 </div>
-<div class="card mt12" style="padding:14px 15px">
+${v.tolov ? `<div class="card mt12" style="padding:14px 15px">
 <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="note" style="padding:0">Bugungi tushum</span><b style="font-size:22px;letter-spacing:-.5px">${v.income} <small style="font-size:12px;color:var(--muted);font-weight:500">so‘m</small></b></div>
 <div class="bar mt10">${v.incomeBar ? `<i style="width:${v.incomeBar}%;background:linear-gradient(90deg,var(--gold1),var(--gold2))"></i>` : ''}</div>
 <div class="note mt8" style="padding:0;font-size:12px">${v.incomeSub}</div>
-</div>
+</div>` : ''}
 <div class="card mt12" style="padding:14px 15px">
 <div class="note" style="padding:0">Yangi e’lonlar, 7 kun</div>
 <div class="bars">${v.bars.map((h, i) => `<i style="height:${h}px${v.barsToday && i === 6 ? ';background:linear-gradient(180deg,var(--gold1),var(--gold2))' : ''}"></i>`).join('')}</div>
@@ -54,11 +54,11 @@ ${anav('b')}`;
 
 /* C. Navbat */
 export interface QItem { id: string; tag: [string, string]; title: string; sub: string; }
-export interface QueueVM { clock: string; total: number; counts: number[]; tab: number; items: QItem[] }
+export interface QueueVM { clock: string; total: number; counts: number[]; tab: number; items: QItem[]; tolov: boolean }
 const QTABS = ['Hammasi', 'Shikoyat', 'To‘lov', 'E’lon', 'Savol'];
 export const queue = (v: QueueVM) => `${bg}
 ${xhdr(`Navbat · ${v.total}`, undefined, v.clock)}
-<div class="chips scroll mt8">${QTABS.map((t, i) => chip(`${t} ${v.counts[i]}`, v.tab === i, 'qtab', i)).join('')}</div>
+<div class="chips scroll mt8">${QTABS.map((t, i) => (i === 2 && !v.tolov ? '' : chip(`${t} ${v.counts[i]}`, v.tab === i, 'qtab', i))).join('')}</div>
 <div class="mt14"></div>
 ${v.items.length ? `<div class="card">${v.items.map((q) => `<div class="row"${A('qopen', q.id)}><span class="tag ${q.tag[1]}">${q.tag[0]}</span><div class="rt"><b>${q.title}</b><small>${q.sub}</small></div><div class="rv">${I('chev')}</div></div>`).join('')}</div>` : empty('check', 'Navbat bo‘sh', 'Qaroringizni kutayotgan narsa yo‘q')}
 ${anav('n')}`;
@@ -83,18 +83,18 @@ export const complaintActions = (hasListing: boolean) => `<div class="pbtns">${h
 export const pbtns = (h: string, style = '') => `<div class="pbtns"${style ? ` style="${style}"` : ''}>${h}</div>`;
 
 /* D. Odamlar */
-export interface PeopleVM { clock: string; q: string; tab: number; total: number; rows: string }
+export interface PeopleVM { clock: string; q: string; tab: number; total: number; rows: string; tolov: boolean }
 const PTABS = ['Hammasi', 'Yangi', 'Shikoyati bor', 'Bloklangan', 'TOP'];
 export const people = (v: PeopleVM) => `${bg}
 ${xhdr('Odamlar', undefined, v.clock)}
 <div class="search mt8">${I('search')}<input class="sin" data-in="pq" placeholder="Ism, telefon yoki ID" value="${esc(v.q)}"></div>
-<div class="chips scroll mt12">${PTABS.map((t, i) => chip(i === 0 ? `${t} ${v.total}` : t, v.tab === i, 'ptab', i)).join('')}</div>
+<div class="chips scroll mt12">${(v.tolov ? PTABS : PTABS.slice(0, 4)).map((t, i) => chip(i === 0 ? `${t} ${v.total}` : t, v.tab === i, 'ptab', i)).join('')}</div>
 <div class="mt14"></div>
 ${v.rows ? `<div class="card">${v.rows}</div>` : empty('users', 'Hali foydalanuvchi yo‘q', 'Ilovaga kirganlar shu yerda ko‘rinadi')}
 ${anav('o')}`;
 
 /* I. Odam kartasi */
-export interface PersonVM { clock: string; letter: string; name: string; phone: string; id: string; rows: string; blocked: boolean; verified: boolean }
+export interface PersonVM { clock: string; letter: string; name: string; phone: string; id: string; rows: string; blocked: boolean; verified: boolean; tolov: boolean }
 export const person = (v: PersonVM) => `${bg}
 ${ah('Odam', v.clock)}
 <div class="card mt8"><div class="emp"><div class="av">${v.letter}</div><div class="rt"><b>${v.name}</b><small>${v.phone}</small></div><span class="tag grey">ID ${v.id}</span></div></div>
@@ -102,7 +102,7 @@ ${ah('Odam', v.clock)}
 ${v.rows}
 </div>
 <div class="sec">Amal</div>
-<div class="pbtns">${pb('Ogohlantirish', 'gold', undefined, 'uwarn')}${pb('Yashirish 1/3/5 kun', '', undefined, 'uhide')}${pb('TOP berish', '', undefined, 'utop')}</div>
+<div class="pbtns">${pb('Ogohlantirish', 'gold', undefined, 'uwarn')}${pb('Yashirish 1/3/5 kun', '', undefined, 'uhide')}${v.tolov ? pb('TOP berish', '', undefined, 'utop') : ''}</div>
 <div class="pbtns mt10">${pb(v.verified ? '✓ Tasdiqlangan · olib tashlash' : '✓ Tasdiqlangan', '', undefined, 'uverify')}${v.blocked ? pb('Blokdan chiqarish', '', undefined, 'uunblock') : pb('Bloklash', 'red', undefined, 'ublock')}</div>`;
 
 /* E. Pul */
@@ -135,13 +135,13 @@ ${spacer()}
 <div class="pbtns" style="justify-content:center">${pb('Holatni tekshirish', 'gold', undefined, 'jcheck')}${v.canRefund ? pb('Pulni qaytarish', 'red', undefined, 'jrefund') : ''}</div>`;
 
 /* F. Yana */
-export interface MoreVM { clock: string; active: string; activeSub: string; tops: string; topsSub: string; autoSub: string; price: string; test: boolean }
+export interface MoreVM { clock: string; active: string; activeSub: string; tops: string; topsSub: string; autoSub: string; price: string; test: boolean; tolov: boolean }
 export const more = (v: MoreVM) => `${bg}
 ${xhdr('Yana', undefined, v.clock)}
 <div class="sec" style="margin-top:6px">Kontent</div>
 <div class="card">
 ${row('brief', 'Faol e’lonlar', v.active + ' ' + I('chev'), v.activeSub, 'go', 'R')}
-${row('bolt', 'Faol TOP’lar', v.tops + ' ' + I('chev'), v.topsSub, 'go', 'T')}
+${v.tolov ? row('bolt', 'Faol TOP’lar', v.tops + ' ' + I('chev'), v.topsSub, 'go', 'T') : ''}
 ${row('shield', 'Shubhali so‘zlar filtri', I('chev'), '“oldindan”, “o‘tkazing”, karta raqami', 'go', 'K')}
 ${row('pin', 'Hududlar va ish turlari', I('chev'), 'Tumanlar, masofa, ish turlari ro‘yxati', 'go', 'Q')}
 </div>
@@ -149,10 +149,10 @@ ${row('pin', 'Hududlar va ish turlari', I('chev'), 'Tumanlar, masofa, ish turlar
 <div class="card">
 ${row('chat', 'Avtomatik amallar jurnali', I('chev'), v.autoSub, 'go', 'P')}
 ${row('send', 'Botdan xabar yuborish', I('chev'), 'Hammaga yoki tuman, yozuv bo‘yicha', 'go', 'L')}
-${row('tag', 'TOP narxi', I('chev'), v.price, 'go', 'M')}
+${v.tolov ? row('tag', 'TOP narxi', I('chev'), v.price, 'go', 'M') : ''}
 </div>
 <div class="card mt12">
-${row('info', 'Favqulodda tugmalar', I('chev'), 'Yangi e’lonlarni yoki to‘lovni to‘xtatish', 'go', 'N')}
+${row('info', 'Favqulodda tugmalar', I('chev'), v.tolov ? 'Yangi e’lonlarni yoki to‘lovni to‘xtatish' : 'Yangi e’lonlarni to‘xtatish, texnik ishlar', 'go', 'N')}
 ${row('shield', 'Kirish kodini o‘zgartirish', I('chev'), '12 belgi · raqam va harf', 'go', 'G')}
 ${row('eye', 'Kirishlar jurnali', I('chev'), 'Xato kodlar · Hamma joydan chiqish', 'go', 'O')}
 </div>
@@ -209,11 +209,11 @@ ${spacer()}
 <div class="btn gold"${A('msave')}${offIf(!changed)}>Saqlash</div>`;
 
 /* N. Favqulodda */
-export const emergency = (clock: string, s: { stopPosting: boolean; paymentsOff: boolean; maintenance: boolean }) => `${bg}
+export const emergency = (clock: string, s: { stopPosting: boolean; paymentsOff: boolean; maintenance: boolean }, tolov = true) => `${bg}
 ${ah('Favqulodda', clock)}
 <div class="card mt8">
 ${row('brief', 'Yangi e’lonlarni to‘xtatish', sw(s.stopPosting), 'Eski e’lonlar ko‘rinib turadi', 'ntog', 'stopPosting')}
-${row('wallet', 'To‘lovlarni o‘chirish', sw(s.paymentsOff), '“TOP qilish” vaqtincha yopiladi', 'ntog', 'paymentsOff')}
+${tolov ? row('wallet', 'To‘lovlarni o‘chirish', sw(s.paymentsOff), '“TOP qilish” vaqtincha yopiladi', 'ntog', 'paymentsOff') : ''}
 ${row('wrench', 'Texnik ishlar rejimi', sw(s.maintenance), 'Hammaga “Texnik ishlar” oynasi', 'ntog', 'maintenance')}
 </div>
 <div class="note mt12">Har birini yoqishda “Ishonchingiz komilmi?” so‘raladi va jurnalga yoziladi.</div>`;
@@ -228,14 +228,14 @@ ${spacer()}
 <div class="pbtns" style="justify-content:center">${pb('Hamma joydan chiqish', 'red', 'logout', 'oall')}</div>`;
 
 /* P. Avtomatik amallar */
-export const autoActs = (clock: string, rows: string) => `${bg}
+export const autoActs = (clock: string, rows: string, tolov = true) => `${bg}
 ${ah('Avtomatik amallar', clock)}
 <div class="sec" style="margin-top:6px">Qoidalar</div>
 <div class="card">
 ${row('flag', '3 ta turli odam shikoyat qilsa', '', 'E’lon yashiriladi, Navbatga tushadi')}
 ${row('shield', 'Shubhali so‘z bo‘lsa', '', 'E’lon Navbatga tushadi')}
 ${row('cal', '“Qachon” o‘tib ketsa', '', 'Ish bor e’loni yopiladi')}
-${row('bolt', 'TOP muddati tugasa', '', 'TOP o‘chadi, egasiga xabar')}
+${tolov ? row('bolt', 'TOP muddati tugasa', '', 'TOP o‘chadi, egasiga xabar') : ''}
 </div>
 <div class="sec">Jurnal</div>
 ${rows ? `<div class="card">${rows}</div>` : empty('chat', 'Hali amal yo‘q', 'Har birini “↩ Bekor qilish” mumkin')}`;
@@ -250,9 +250,9 @@ ${ah('Hududlar va ish turlari', clock)}
 <div class="chips">${jobs.map(([id, t, hidden]) => `<span class="chip"${A('qjob', id)}${hidden ? ' style="opacity:.45"' : ''}>${t}</span>`).join('')}<span class="chip"${A('qaddj')}>${I('plus')}Qo‘shish</span></div>`;
 
 /* R. Faol e’lonlar */
-export const actives = (clock: string, tab: number, counts: string[], q: string, cards: string) => `${bg}
+export const actives = (clock: string, tab: number, counts: string[], q: string, cards: string, tolov = true) => `${bg}
 ${ah('Faol e’lonlar', clock)}
-<div class="sels mt8">${['Ish bor', 'Ish kerak', 'TOP'].map((t, i) => `<div class="sel${tab === i ? ' on' : ''}"${A('rtab', i)}><small>${t}</small><b>${counts[i]}</b></div>`).join('')}</div>
+<div class="sels mt8">${(tolov ? ['Ish bor', 'Ish kerak', 'TOP'] : ['Ish bor', 'Ish kerak']).map((t, i) => `<div class="sel${tab === i ? ' on' : ''}"${A('rtab', i)}><small>${t}</small><b>${counts[i]}</b></div>`).join('')}</div>
 <div class="search mt14">${I('search')}<input class="sin" data-in="rsq" placeholder="Qidirish" value="${esc(q)}"></div>
 <div class="mt14"></div>
 ${cards || empty('brief', 'E’lon yo‘q', 'Joylangan e’lonlar shu yerda ko‘rinadi')}`;

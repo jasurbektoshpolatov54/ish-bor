@@ -1,5 +1,7 @@
 # Mehnat boti: Telegram Stars serveri
 
+**Hozir to‘lov o‘chiq** (ilova bepul): `TOLOV` o‘zgaruvchisi `on` bo‘lmasa server faqat `/start` ga «Ochish» tugmasi bilan javob beradi; `/narx`, `/invoice`, `/paysupport`, `/terms` ishlamaydi. Qaytarish: GitHub Variables da `TOLOV=on` va ilovada `src/core/flags.ts` → `tolov: true`.
+
 Bepul Cloudflare Worker. `.github/workflows/telegram.yml` uni o‘zi joylaydi (GitHub sirlarida `CLOUDFLARE_API_TOKEN` bo‘lsa).
 
 - `/tg` — Telegram webhook: `/start`, `/paysupport`, `/terms`, to‘lovni tekshirish (pre_checkout) va qabul qilish.

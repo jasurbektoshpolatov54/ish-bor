@@ -1,6 +1,7 @@
 // Foydalanuvchi oynalari (SPEC 3.1–3.32). Har bir funksiya tayyor ko‘rinish ma’lumotini (vm) oladi
 // va design/html/app.html, app0.html, extra.html dagi belgini aynan qaytaradi.
 import { A, I, IF, bg, hdr, row, rings, nav, lc, empty, off, offIf, dim, sheet, sh, minty, kp, chip, seg, sel, sw, radio, tile, type LcData } from '../ui/kit';
+import { flags } from '../core/flags';
 
 const avBlue = 'background:radial-gradient(circle at 35% 30%,#9cb8ff,#4a6fd8 75%)';
 const spacer = (h = 18) => `<div class="spacer" style="min-height:${h}px"></div>`;
@@ -373,7 +374,10 @@ export const HELP: [string, string, string, string][] = [
   ['check', 'Odam topdim / Band', 'E’loningizni qanday yopasiz', '“Odam topdim” — ishchi topilgach e’lonni yopadi. “Band” — ishchi hozir band ekanini bildiradi, lekin ro‘yxatda qoladi.'],
   ['shield', 'Xavfsizlik', 'Hech kimga oldindan pul bermang', 'Hech kimga oldindan pul bermang. Ilova hech qachon pul so‘ramaydi (faqat siz o‘zingiz xohlab TOP qilsangiz). Pul so‘rashsa — “Shikoyat qilish”ni bosing.'],
 ];
-export const help = (open: number[], items = HELP) => `${bg}
+/** To‘lov kaliti o‘chiq bo‘lsa (core/flags.ts) TOP haqidagi savol chiqmaydi va pul haqidagi javobda TOP tilga olinmaydi. */
+const SAFE_FREE = 'Hech kimga oldindan pul bermang. Ilova hech qachon pul so‘ramaydi. Pul so‘rashsa — “Shikoyat qilish”ni bosing.';
+export const helpItems = (): typeof HELP => flags.tolov ? HELP : HELP.filter(([ic]) => ic !== 'bolt').map((x) => (x[0] === 'shield' ? [x[0], x[1], x[2], SAFE_FREE] : x));
+export const help = (open: number[], items = helpItems()) => `${bg}
 ${hdr('Yordam')}
 <div class="big">Savollar</div>
 <div class="card mt18">

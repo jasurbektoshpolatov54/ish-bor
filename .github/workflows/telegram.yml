@@ -17,7 +17,11 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      APP_REF: claude/project-thread-1d1pyx
+      # Ilova kodi shu shoxobchaning o‘zidan yig‘iladi (src/core/flags.ts dagi to‘lov kaliti bilan).
+      APP_REF: ${{ github.ref_name }}
+      # To‘lov (TOP, Telegram Stars) hozir o‘chiq: ilova bepul. Qaytarish uchun GitHub → Settings →
+      # Secrets and variables → Actions → Variables da TOLOV=on qo‘ying va src/core/flags.ts da tolov: true qiling.
+      TOLOV: ${{ vars.TOLOV || 'off' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -32,7 +36,8 @@ jobs:
           cache: npm
           cache-dependency-path: app/package-lock.json
 
-      # Stars serveri (bepul Cloudflare Worker): bot webhook'i, TOP narxi va to'lov hisoblari.
+      # Bot serveri (bepul Cloudflare Worker): bot webhook'i (/start → «Ochish»).
+      # TOLOV=on bo'lsagina TOP narxi va Stars to'lov hisoblari ishlaydi; hozir o'chiq.
       # CLOUDFLARE_API_TOKEN bo'lmasa o'tkazib yuboriladi va ilova Starssiz yig'iladi.
       - name: Stars serveri (Cloudflare)
         id: stars
@@ -78,6 +83,7 @@ jobs:
           TOP_DAYS = "${{ vars.TOP_DAYS || '7' }}"
           STAR_USD = "${{ vars.STAR_USD || '0.02' }}"
           USD_RATE_FALLBACK = "12500"
+          TOLOV = "$TOLOV"
           EOT
           WH=$(printf '%s' "webhook:$TOKEN" | sha256sum | cut -c1-48)
           AH=""; if [ -n "$ADMIN_INITIAL_CODE" ]; then AH=$(printf '%s' "$ADMIN_INITIAL_CODE" | sha256sum | cut -d' ' -f1); fi
@@ -86,13 +92,14 @@ jobs:
           umask 077; jq -n --arg a "$TOKEN" --arg b "$WH" --arg c "$AH" '{BOT_TOKEN:$a, WEBHOOK_SECRET:$b, ADMIN_HASH:$c}' > "$RUNNER_TEMP/s.json"
           npx --yes wrangler@3.114.17 secret bulk "$RUNNER_TEMP/s.json"; rm -f "$RUNNER_TEMP/s.json"
           URL="https://mehnat-bot.$SUB.workers.dev"
-          for i in $(seq 1 30); do if curl -fsS "$URL/narx" | jq -e .stars >/dev/null 2>&1; then OK=1; break; fi; sleep 10; done
+          for i in $(seq 1 30); do if curl -fsS "$URL/" | grep -q 'ishlayapti'; then OK=1; break; fi; sleep 10; done
           if [ -z "$OK" ]; then echo "::error::$URL javob bermadi"; exit 1; fi
-          curl -fsS "$URL/narx" | jq -c . | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$TOLOV" = on ]; then curl -fsS "$URL/narx" | jq -c . | tee -a "$GITHUB_STEP_SUMMARY"; fi
           curl -fsS "https://api.telegram.org/bot$TOKEN/setWebhook" -H 'Content-Type: application/json' \
             -d "$(jq -nc --arg u "$URL/tg" --arg s "$WH" '{url:$u, secret_token:$s, allowed_updates:["message","pre_checkout_query"]}')" | jq -c .
           echo "Stars serveri: $URL" >> "$GITHUB_STEP_SUMMARY"
-          echo "api=$URL" >> "$GITHUB_OUTPUT"
+          # Ilovaga Stars faqat to'lov yoqiq bo'lsa ulanadi.
+          if [ "$TOLOV" = on ]; then echo "api=$URL" >> "$GITHUB_OUTPUT"; else echo "To‘lov o‘chiq: ilovada Stars yo‘q" >> "$GITHUB_STEP_SUMMARY"; fi
 
       # Telegramga moslash: oynachalar, til tanlash, bosh sahifa yozuvi.
       # Faqat shu yig‘ishda; ilova kodidagi asl fayllar o‘zgarmaydi.

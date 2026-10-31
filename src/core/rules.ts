@@ -4,6 +4,7 @@ import { RADIUS_KM } from './seed';
 import { SHAPES } from './places';
 import { DAY_MS, dayStart } from './format';
 import { word } from '../ui/cyr';
+import { flags } from './flags';
 
 export function haversine(lat1: number, lng1: number, lat2: number, lng2: number) {
   const R = 6371, r = Math.PI / 180;
@@ -23,7 +24,8 @@ export function title(db: DB, l: Listing) {
 }
 export const personTitle = (u?: User) => (u ? (u.surname ? `${u.name} ${u.surname[0]}.` : u.name) : '');
 
-export const isTop = (l: Listing, now: number) => !!l.topUntil && l.topUntil > now && l.status === 'faol';
+/** TOP faqat to‘lov kaliti yoqiq bo‘lsa ishlaydi (core/flags.ts). */
+export const isTop = (l: Listing, now: number) => flags.tolov && !!l.topUntil && l.topUntil > now && l.status === 'faol';
 
 /** Matnni qidiruv uchun bir xil ko‘rinishga keltiradi: kichik harf, kirill */
 export function norm(s: string) {

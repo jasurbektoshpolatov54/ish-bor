@@ -98,6 +98,8 @@ export const RU: Record<string, string> = {
   'E’loningizni qanday yopasiz': 'Как закрыть объявление',
   '“Odam topdim” — ishchi topilgach e’lonni yopadi. “Band” — ishchi hozir band ekanini bildiradi, lekin ro‘yxatda qoladi.': '«Нашёл человека» — закрывает объявление, когда работник найден. «Занят» — работник сейчас занят, но остаётся в списке.',
   'Xavfsizlik': 'Безопасность',
+  'Hech kimga oldindan pul bermang. Ilova hech qachon pul so‘ramaydi. Pul so‘rashsa — “Shikoyat qilish”ni bosing.': 'Никому не платите заранее. Приложение никогда не просит денег. Если просят деньги — нажмите «Пожаловаться».',
+  'Yangi e’lonlarni to‘xtatish, texnik ishlar': 'Остановить новые объявления, технические работы',
   'Hech kimga oldindan pul bermang. Ilova hech qachon pul so‘ramaydi (faqat siz o‘zingiz xohlab TOP qilsangiz). Pul so‘rashsa — “Shikoyat qilish”ni bosing.': 'Никому не платите заранее. Приложение никогда не просит денег (только если вы сами захотите TOP). Если просят деньги — нажмите «Пожаловаться».',
   'Botga savol yozish': 'Написать вопрос боту', 'Botga yozish': 'Написать боту', 'Savolingizni yozing': 'Напишите ваш вопрос',
   'Xabaringiz yuborildi. Javob bot orqali keladi.': 'Сообщение отправлено. Ответ придёт через бота.',
