@@ -1,0 +1,96 @@
+name: Telegram Mini App
+
+# Ilovaning o‘zi (claude/project-thread-1d1pyx shoxobchasi) o‘zgarmaydi: shu yerda yig‘iladi,
+# Telegram skripti qo‘shiladi va gh-pages shoxobchasiga joylanadi.
+on:
+  push:
+    branches: [claude/project-thread-j0x9dd, claude/project-thread-1d1pyx]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: telegram-mini-app
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      APP_REF: claude/project-thread-1d1pyx
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.APP_REF }}
+          path: app
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      # Telegramga moslash: oynachalar, til tanlash, bosh sahifa yozuvi.
+      # Faqat shu yig‘ishda; ilova kodidagi asl fayllar o‘zgarmaydi.
+      - name: Telegramga moslash
+        run: python3 -I telegram/patch.py app
+
+      - name: Ilovani yig‘ish
+        working-directory: app
+        env:
+          ADMIN_INITIAL_CODE: ${{ secrets.ADMIN_INITIAL_CODE }}
+        run: |
+          npm ci
+          npm run build
+          if [ -n "$ADMIN_INITIAL_CODE" ] && grep -rqF -- "$ADMIN_INITIAL_CODE" dist; then echo "Kod ochiq holda topildi!"; exit 1; fi
+
+      - name: Telegram skripti
+        run: |
+          awk 'FNR==NR{t=t $0 "\n"; next} /<\/head>/{printf "%s", t} 1' telegram/inject.html app/dist/index.html > index.tmp
+          mv index.tmp app/dist/index.html
+          grep -q telegram-web-app.js app/dist/index.html
+          touch app/dist/.nojekyll
+
+      - name: gh-pages ga joylash
+        run: |
+          cd app/dist
+          git init -q -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "Mini App: ${{ env.APP_REF }} @ $(git -C .. rev-parse --short HEAD)"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" gh-pages
+
+      - name: Bot menyusiga ulash
+        env:
+          TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then echo "::error::TELEGRAM_BOT_TOKEN yo‘q"; exit 1; fi
+          OWNER="${GITHUB_REPOSITORY%%/*}"; NAME="${GITHUB_REPOSITORY#*/}"
+          URL="https://${OWNER,,}.github.io/${NAME}/"
+          API="https://api.telegram.org/bot$TOKEN"
+          # Pages yangilanishini kutish (bir necha daqiqa olishi mumkin)
+          for i in $(seq 1 30); do
+            if curl -fsS "$URL" | grep -q telegram-web-app.js; then OK=1; break; fi
+            sleep 20
+          done
+          if [ -z "$OK" ]; then
+            echo "::warning::$URL ochilmadi. Settings → Pages bo‘limida Branch: gh-pages tanlanganini tekshiring."
+            exit 1
+          fi
+          curl -fsS "$API/getMe" | jq -r '"Bot: @" + .result.username'
+          curl -fsS "$API/setChatMenuButton" -H 'Content-Type: application/json' \
+            -d "$(jq -nc --arg u "$URL" '{menu_button:{type:"web_app",text:"Ochish",web_app:{url:$u}}}')" | jq -c .
+          echo "Mini App manzili: $URL" >> "$GITHUB_STEP_SUMMARY"
+          # Server yo'q, shuning uchun bot /start ga javob bermaydi. Buning o'rniga
+          # bo'sh chatda va bot profilida "Ochish" tugmasini ko'rsatuvchi tavsif chiqadi.
+          desc() {
+            curl -fsS "$API/setMyDescription" -H 'Content-Type: application/json' -d "$(jq -nc --arg d "$1" --arg l "$3" '{description:$d,language_code:$l}')" | jq -c .
+            curl -fsS "$API/setMyShortDescription" -H 'Content-Type: application/json' -d "$(jq -nc --arg d "$2" --arg l "$3" '{short_description:$d,language_code:$l}')" | jq -c .
+          }
+          desc $'Halol mehnat, vositachisiz. Bir-biringizni to‘g‘ridan-to‘g‘ri toping.\n\n👇 Ilovani ochish uchun pastdagi «Ochish» tugmasini bosing.' \
+               'Halol mehnat, vositachisiz. Ilovani pastdagi «Ochish» tugmasi bilan oching.' ''
+          desc $'Честный труд, без посредников. Находите друг друга напрямую.\n\n👇 Чтобы открыть приложение, нажмите кнопку «Ochish» внизу.' \
+               'Честный труд, без посредников. Откройте приложение кнопкой «Ochish» внизу.' 'ru'
