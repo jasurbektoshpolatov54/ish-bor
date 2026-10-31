@@ -9,11 +9,11 @@ const spacer = (h = 18) => `<div class="spacer" style="min-height:${h}px"></div>
 export interface HomeVM { letter?: string; name?: string; kind: 'bor' | 'kerak'; cntBor: string; cntKerak: string; near: LcData[] }
 export const home = (v: HomeVM) => `${bg}
 <div class="greet"><div class="av"${v.letter ? '' : ' style="font-size:0"'}>${v.letter || I('user', 2)}</div><div><small>${v.name ? 'Assalomu alaykum,' : 'Assalomu alaykum!'}</small><b>${v.name || 'Xush kelibsiz'}</b></div><div class="sbtn"${A('search')}>${I('search')}</div></div>
-<div class="h2 mt14" style="font-size:20px;letter-spacing:-.5px;line-height:1.2">Halol mehnat,<br>vositachisiz</div>
+<div class="h2 mt14" style="font-size:20px;letter-spacing:-.5px;line-height:1.2">Halol mehnat, vositachisiz</div>
 <div class="note mt4" style="font-size:12.5px">Bir-biringizni to‘g‘ridan-to‘g‘ri toping.</div>
 <div class="two mt16">
- <div class="bigc g${v.kind === 'bor' ? ' on' : ''}"${A('hkind', 'bor')}><div class="ic">${I('brief')}</div><b>Ish bor</b><div class="cnt">${v.cntBor} ta e’lon ${I('chev', 2.2)}</div></div>
- <div class="bigc s${v.kind === 'kerak' ? ' on' : ''}"${A('hkind', 'kerak')}><div class="ic">${I('user')}</div><b>Ish kerak</b><div class="cnt">${v.cntKerak} ta ishchi ${I('chev', 2.2)}</div></div>
+ <div class="bigc g${v.kind === 'bor' ? ' on' : ''}"${A('hkind', 'bor')}><div class="hd"><div class="ic">${I('brief')}</div><b>Ish bor</b></div><div class="cnt">${v.cntBor} ta e’lon ${I('chev', 2.2)}</div></div>
+ <div class="bigc s${v.kind === 'kerak' ? ' on' : ''}"${A('hkind', 'kerak')}><div class="hd"><div class="ic">${I('user')}</div><b>Ish kerak</b></div><div class="cnt">${v.cntKerak} ta ishchi ${I('chev', 2.2)}</div></div>
 </div>
 <div class="secrow"><b>Yaqin atrofda</b><span${v.near.length ? A('list', v.kind) : ''}>${v.near.length ? 'Barchasi' : ''}</span></div>
 ${v.near.length ? v.near.map(lc).join('\n') : empty('pin', 'Hozircha e’lon yo‘q', 'Birinchi bo‘lib e’lon joylang')}
