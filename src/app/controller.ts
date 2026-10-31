@@ -504,7 +504,10 @@ async function act(a: string, v: string | undefined, el: HTMLElement) {
     N.haptic.warn();
     if (a === 'psubmit') return flashMissing();
     if (a === 'csend') return flash('.card.mt20');
-    if (a === 'rpick') return flash(root.querySelector('.radio.on') ? '.chips' : '.card.mt14');
+    if (a === 'rpick') {
+      if (!s.p.district) return flash('.card.mt14');
+      flash('.chips'); return N.alert('Masofani belgilang.');
+    }
     return;
   }
   switch (a) {
@@ -614,7 +617,7 @@ async function act(a: string, v: string | undefined, el: HTMLElement) {
     case 'vil': s.p.vil = v; render(); return window.scrollTo(0, 0);
     case 'district': s.p.district = v; s.p.lat = undefined; s.p.lng = undefined; s.p.fold = true; s.p.q = ''; render(); return window.scrollTo(0, 0);
     case 'unfold': s.p.fold = false; return render();
-    case 'radius': s.p.radius = Number(v); return render();
+    case 'radius': s.p.radius = s.p.radius === Number(v) ? undefined : Number(v); return render();
     case 'locate': {
       const p = await N.locate();
       if (!p || p === 'fail') { s.p.denied = p ? 'fail' : true; return render(); }

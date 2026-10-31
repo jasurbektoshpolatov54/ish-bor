@@ -58,6 +58,10 @@ for (const [la, lo, want] of [[39.6542, 66.9597, 'Samarqand sh.'], [40.3842, 71.
 }
 await shot('region-lokatsiya');
 await tap('district', 'Chilonzor'); await tap('radius', '1'); await shot('region-tanlangan');
+// Masofani qayta bosish belgini oladi; belgisiz “Tanlash” ogohlantiradi
+await tap('radius', '1'); if (await p.locator('.chips .chip.on').count()) errs.push('masofa belgisi olinmadi');
+{ const before = log.length; await tap('rpick'); await expectScreen('region'); if (!log.slice(before).some((x) => x.includes('Masofani belgilang'))) errs.push('“Masofani belgilang” chiqmadi'); }
+await tap('radius', '1');
 await tap('rpick'); await expectScreen('post');
 await tap('pwhen'); await shot('qachon');
 // 1: boshqa kun oynasi — orqaga qaytadi
