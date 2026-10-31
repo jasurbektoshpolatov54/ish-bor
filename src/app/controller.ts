@@ -569,7 +569,7 @@ async function act(a: string, v: string | undefined, el: HTMLElement) {
     case 'pkind': draft().kind = v as Kind; u.lastKind = v as Kind; save(); return render(true);
     case 'pjob': {
       const d = draft();
-      if (d.kind === 'bor') d.bor.job = v;
+      if (d.kind === 'bor') d.bor.job = d.bor.job === v ? undefined : v;
       else { d.kerak.any = false; d.kerak.jobs = d.kerak.jobs.includes(v!) ? d.kerak.jobs.filter((x) => x !== v) : [...d.kerak.jobs, v!]; }
       save(); return render();
     }
