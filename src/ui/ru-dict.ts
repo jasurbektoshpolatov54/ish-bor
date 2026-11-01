@@ -112,7 +112,7 @@ export const RU: Record<string, string> = {
   'Ismingiz': 'Ваше имя', 'Telefon raqami': 'Номер телефона', 'Telefon raqamingiz (+998…)': 'Ваш номер телефона (+998…)',
   'Raqam noto‘g‘ri. Masalan: +998 90 123 45 67': 'Неверный номер. Например: +998 90 123 45 67',
   'Hozir yangi e’lon qabul qilinmayapti. Birozdan keyin urinib ko‘ring.': 'Сейчас новые объявления не принимаются. Попробуйте чуть позже.',
-  'Mikrofonga ruxsat berilmadi.': 'Нет доступа к микрофону.', 'Ilovani ochish': 'Открыть приложение', 'Uzaytirish': 'Продлить',
+  'Mikrofonga ruxsat berilmadi.': 'Нет доступа к микрофону.', 'Ilovani ochish': 'Открыть приложение', 'Sizga mos ishchilar': 'Подходящие работники', 'Sizga mos ishlar': 'Подходящая работа', 'Sizga mos e’lonlar': 'Подходящие объявления', 'Uzaytirish': 'Продлить',
   'E’loningiz joylandi.': 'Ваше объявление опубликовано.', 'E’loningiz yopildi. Hali kerak bo‘lsa — qayta joylang.': 'Ваше объявление закрыто. Если ещё нужно — опубликуйте снова.',
   'TOP ertaga tugaydi. Uzaytirasizmi?': 'TOP заканчивается завтра. Продлить?', 'TOP muddati tugadi. E’loningiz oddiy tartibda turibdi.': 'Срок TOP закончился. Объявление показывается в обычном порядке.',
   'Bugun bo‘shmisiz?': 'Вы сегодня свободны?', 'Qoidalar buzilgani uchun hisobingiz cheklandi.': 'Из-за нарушения правил ваш аккаунт ограничен.',

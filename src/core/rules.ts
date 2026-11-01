@@ -190,3 +190,22 @@ export function nearestDistrict(db: DB, lat: number, lng: number) {
 
 /** G: yangi kod shartlari */
 export const codeRules = (c: string) => [c.length === 12, /[A-Za-z]/.test(c) && /\d/.test(c) && /^[A-Za-z0-9]*$/.test(c)];
+
+/**
+ * Ish va ishchi bir-biriga mosmi: ish turi (yoki “Istalgan ish”), jinsi va masofa
+ * (ikkala e’lonning masofasi ichida). Server (worker/match.js) ham xuddi shu qoidani ishlatadi.
+ */
+export function pairFits(bor: Listing, kerak: Listing, now: number) {
+  if (bor.kind !== 'bor' || kerak.kind !== 'kerak') return false;
+  if (bor.when && closeAt(bor)! <= now) return false;
+  if (!kerak.anyJob && !bor.jobs.some((j) => kerak.jobs.includes(j))) return false;
+  if (bor.forWhom && bor.forWhom !== 'farqi' && kerak.gender && kerak.gender !== bor.forWhom) return false;
+  const d = haversine(bor.lat, bor.lng, kerak.lat, kerak.lng);
+  return d <= Math.min(RADIUS_KM[bor.radius] ?? Infinity, RADIUS_KM[kerak.radius] ?? Infinity);
+}
+
+/** E’longa mos qarshi tomondagi e’lonlar (ishga — ishchilar, ishchiga — ishlar), yaqinidan uzog‘iga */
+export function offersFor(db: DB, l: Listing, now: number) {
+  const out = db.listings.filter((x) => x.owner !== l.owner && x.kind !== l.kind && isPublic(db, x, now) && (l.kind === 'bor' ? pairFits(l, x, now) : pairFits(x, l, now)));
+  return out.sort((a, b) => haversine(l.lat, l.lng, a.lat, a.lng) - haversine(l.lat, l.lng, b.lat, b.lng));
+}

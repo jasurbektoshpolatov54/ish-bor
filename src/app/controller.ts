@@ -9,10 +9,12 @@ import { bg, row, I, esc, raw, lc, A } from '../ui/kit';
 import { toCyrDom } from '../ui/cyr';
 import { toRuDom, setRuPlaces } from '../ui/ru';
 import * as N from './native';
-import { db, load, save, flush, now, uid, me, owner, userById, listingById, isAdminPhone, audit, note, outbox, myListings, replace, TEST_BUILD, ADMIN, ensureAdmin } from './store';
+import { db, load, save, flush, now, uid, me, owner, userById, listingById, isAdminPhone, audit, note, outbox, myListings, replace, TEST_BUILD, ADMIN, ensureAdmin, setAfterSave } from './store';
 import { REGIONS } from '../core/places';
 import { flags } from '../core/flags';
 import { freshDB, PAY_APPS, RADII, TRAITS, REASONS, REJECT_REASONS, JOB_TYPES } from '../core/seed';
+import { offersFor } from '../core/rules';
+import { serverOn, syncNow, queue, watch, isRemote } from './sync';
 import { search, title, jobIcon, jobName, isTop, suspicious, complaintTrigger, closeAt, pauseTop, resumeTop, extendTop, genderLabel, nearestDistrict, keepStep, norm, personTitle, isPublic, codeRules } from '../core/rules';
 import { money, dayStart, DAY_MS, hhmm, weekday, dmy, MONTHS, normPhone, maskPhone, fullDate, ago } from '../core/format';
 import { pbkdf2, randomSalt, same } from '../core/crypto';
@@ -85,7 +87,13 @@ function screenHtml(s: Scr): string {
   switch (s.n) {
     case 'home': {
       const near = search(db, u, { kind: ui.homeKind }, t).slice(0, 3).map((l) => lcFor(l, u, 'home'));
-      return U.home({ letter: letter(u), name: u?.name, kind: ui.homeKind, cntBor: money(count('bor')), cntKerak: money(count('kerak')), near });
+      // Mening faol e’lonlarimga mos e’lonlar (ishchiga — yangi ishlar, ish beruvchiga — ishchilar), yangisi tepada
+      const mineOn = u ? myListings(u).filter((l) => l.status === 'faol') : [];
+      const seen = new Set<string>();
+      const offers = mineOn.flatMap((l) => offersFor(db, l, t)).filter((x) => !seen.has(x.id) && !!seen.add(x.id)).sort((a, b) => b.createdAt - a.createdAt).slice(0, 3);
+      const kinds = new Set(mineOn.map((l) => l.kind));
+      const offersT = kinds.size > 1 ? 'Sizga mos e’lonlar' : kinds.has('bor') ? 'Sizga mos ishchilar' : 'Sizga mos ishlar';
+      return U.home({ letter: letter(u), name: u?.name, kind: ui.homeKind, cntBor: money(count('bor')), cntKerak: money(count('kerak')), near, offers: offers.map((l) => lcFor(l, u, 'home')), offersT });
     }
     case 'list': {
       const kind = ui.listKind as Kind;
@@ -126,7 +134,8 @@ function screenHtml(s: Scr): string {
     case 'post': return U.post(postVM());
     case 'done': {
       const l = listingById(s.p)!;
-      return U.done({ kind: l.kind, icon: l.kind === 'bor' ? jobIcon(db, l.jobs[0]) : 'user', title: title(db, l), pay: payText(l), whenL: l.kind === 'bor' ? 'Qachon' : 'Bo‘sh kunlari', when: l.kind === 'bor' ? whenText(l) : daysText(l) });
+      const offers = l.status === 'faol' ? offersFor(db, l, t) : [];
+      return U.done({ kind: l.kind, icon: l.kind === 'bor' ? jobIcon(db, l.jobs[0]) : 'user', title: title(db, l), pay: payText(l), whenL: l.kind === 'bor' ? 'Qachon' : 'Bo‘sh kunlari', when: l.kind === 'bor' ? whenText(l) : daysText(l), offers: offers.slice(0, 10).map((x) => lcFor(x, u, 'list')), more: Math.max(0, offers.length - 10) });
     }
     case 'profile': {
       const sub = u?.username ? `@${u.username}${u.district ? ' · ' + u.district : ''}` : u?.district || 'Hudud tanlanmagan';
@@ -1209,6 +1218,7 @@ export async function tick() {
   const t = now();
   const gone: Listing[] = [];
   for (const l of [...db.listings]) {
+    if (isRemote(l.owner)) continue; // boshqalarning e’loni: egasining ilovasi boshqaradi
     const n = (l.notified ||= {});
     if (N.native) for (const k of ['ks0', 'ks1', 'ks2']) { const at = n[k]; if (at && at <= t && at > (n.keepAsk || 0)) n.keepAsk = at; }
     if (l.status === 'yashirin' && l.hiddenUntil && l.hiddenUntil <= t) { l.status = 'faol'; l.hiddenUntil = undefined; }
@@ -1378,9 +1388,11 @@ export async function start(el: HTMLElement) {
     }
     if (s.n === 'aLogin' && db.admin?.lockUntil) render();
   }, 1000);
-  setInterval(() => { void tick().then(() => render()); }, 60e3);
+  setInterval(() => { void tick().then(() => render()); void syncNow().then((ch) => ch && render()); }, 60e3);
   if (!db.ownerId) await firstRun();
   const u = me(); if (u) { u.lastSeen = now(); save(); }
+  watch(() => render()); setAfterSave(queue);
+  if (serverOn()) await Promise.race([syncNow(), new Promise((r) => setTimeout(r, 6000))]);
   await tick();
   if (await boot2()) render(true);
 }
