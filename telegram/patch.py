@@ -31,6 +31,11 @@ edit('src/app/native.ts', native)
 LANG = "script: /^ru/.test(navigator.language || '') ? 'ru' : navigator.language?.match(/^(uk|be|kk|ky|tg)/) ? 'cyr' : 'lat'"
 edit('src/app/controller.ts', lambda s: s.replace(LANG, "script: (window as any).__tg.script || (" + LANG[len('script: '):] + ")", 1))
 
+# 2b. Birinchi kirishda telefon raqami so'ralmaydi (SPEC 4.x: raqam faqat kerak bo'lganda,
+#     «Raqamim ko'rinsin» yoqilganda yoki username yo'q odam e'lon joylaganda so'raladi).
+#     APK sinov versiyasida (13-bo'lim) raqam avvalgidek birinchi kirishda so'raladi.
+edit('src/app/controller.ts', lambda s: s.replace("  db.users.push(u); db.ownerId = u.id; db.acting = u.id;\n  await askPhone(u);\n", "  db.users.push(u); db.ownerId = u.id; db.acting = u.id;\n", 1))
+
 # 3. Bosh sahifadagi yozuv (manba allaqachon yangilangan bo'lsa, tegilmaydi).
 OLD = 'E’lon joylash bepul. Ish uchun hech kimga pul to‘lamang.'
 NEW = 'Bir-biringizni to‘g‘ridan-to‘g‘ri toping.'
