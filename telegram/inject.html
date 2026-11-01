@@ -98,8 +98,11 @@
     }
     return box(msg, true, value, true);
   }
+  // Umumiy baza (bot serveri): manzil yig'ishda yoziladi, bo'sh bo'lsa ilova faqat telefonda ishlaydi.
+  var SERVER_API = '%SERVER_API%';
   var api = window.__tg = inTg ? {
     script: null,
+    server: /^https:/.test(SERVER_API) ? SERVER_API : '',
     prompt: prompt,
     confirm: function (msg) {
       if (!short(msg)) return box(msg, false, '', true);

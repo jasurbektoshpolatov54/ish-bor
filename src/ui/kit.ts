@@ -1,6 +1,7 @@
 // Dizayn yordamchilari: design/html/*.html dagi funksiyalar bilan bir xil belgi (HTML) chiqaradi.
 // Farqi faqat bosiladigan joylarga qo‘shilgan data-a / data-v atributlari (ular ko‘rinishga ta’sir qilmaydi).
 import { I, IF } from './icons';
+import { flags } from '../core/flags';
 
 export { I, IF };
 
@@ -59,7 +60,7 @@ export const ah = (t: string, clock?: string) => hdr(t, lock(clock));
 export const xhdr = (t: string, act?: string, clock?: string, close = 'aexit') =>
   `<div class="hdr"><div class="back"${A(close)}>${I('plus', 2.2).replace('<svg', '<svg style="transform:rotate(45deg)"')}</div>${t}<div class="act">${act || lock(clock)}</div></div>`;
 export const anav = (on: string) =>
-  `<div class="spacer"></div><div class="nav anav">${[['b', 'home', 'Bugun'], ['n', 'bell', 'Navbat'], ['o', 'users', 'Odamlar'], ['p', 'wallet', 'Pul'], ['y', 'filter', 'Yana']]
+  `<div class="spacer"></div><div class="nav anav">${[['b', 'home', 'Bugun'], ['n', 'bell', 'Navbat'], ['o', 'users', 'Odamlar'], ['p', 'wallet', 'Pul'], ['y', 'filter', 'Yana']].filter(([k]) => flags.tolov || k !== 'p')
     .map(([k, ic, t]) => (k === on ? `<a class="pill"${A('anav', k)}>${I(ic)}${t}</a>` : `<a${A('anav', k)}>${I(ic)}</a>`)).join('')}</div>`;
 
 export const bub = (t: string, btns?: string[]) =>

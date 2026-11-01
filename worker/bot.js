@@ -1,8 +1,12 @@
 // Mehnat boti: Telegram Stars (XTR) orqali TOP to'lovi.
 // Cloudflare Worker. Telegram webhook (/tg) va Mini App uchun /narx, /invoice.
-// Sozlamalar (wrangler.toml [vars]): APP_URL, TOP_SOUM, TOP_DAYS, STAR_USD, USD_RATE_FALLBACK
+// Sozlamalar (wrangler.toml [vars]): APP_URL, TOLOV, TOP_SOUM, TOP_DAYS, STAR_USD, USD_RATE_FALLBACK
+// TOLOV = "on" bo'lmasa (hozir shunday) to'lov qismi yashirin: /narx, /invoice, /paysupport, /terms javob bermaydi.
 // Sirlar: BOT_TOKEN, WEBHOOK_SECRET, ADMIN_HASH (Nazorat kodining sha256 xeshi)
 // Ma'lumotlar: KV (STORE) — inv:<id> (hisob), pay:<vaqt>:<charge> (to'lov), rate (kurs), admins
+// Umumiy baza: D1 (DB) — odamlar va e'lonlar (worker/match.js, /api/sync)
+
+import { sync } from './match.js';
 
 const enc = new TextEncoder();
 const hex = (b) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
@@ -98,6 +102,8 @@ const T = {
     ru: 'TOP — показ объявления в начале списка на указанное число дней. Оплата через Telegram Stars. Если услуга не оказана, звёзды возвращаются.',
   },
 };
+/** To'lov (TOP, Stars) yoqiqmi. Hozir ilova bepul, shuning uchun o'chiq. */
+export const tolovOn = (env) => env.TOLOV === 'on';
 const lang = (u) => (/^(ru|uk|be|kk)/.test(u?.language_code || '') ? 'ru' : 'uz');
 
 async function isAdmin(env, id) {
@@ -121,6 +127,7 @@ async function onMessage(env, m) {
   if (c === '/start') {
     return tg(env, 'sendMessage', { chat_id: m.chat.id, text: T.start[L], reply_markup: { inline_keyboard: [[{ text: T.open[L], web_app: { url: env.APP_URL } }]] } });
   }
+  if (!tolovOn(env) && ['/paysupport', '/terms', '/tolovlar', '/qaytar'].includes(c)) return;
   if (c === '/paysupport') return tg(env, 'sendMessage', { chat_id: m.chat.id, text: T.support[L] });
   if (c === '/terms') return tg(env, 'sendMessage', { chat_id: m.chat.id, text: T.terms[L] });
   if (c === '/admin' && args[0]) {
@@ -160,6 +167,7 @@ async function onMessage(env, m) {
 }
 
 async function onPreCheckout(env, q) {
+  if (!tolovOn(env)) return tg(env, 'answerPreCheckoutQuery', { pre_checkout_query_id: q.id, ok: false, error_message: lang(q.from) === 'ru' ? 'Оплата сейчас недоступна.' : 'To‘lov hozir yo‘q.' });
   const inv = await env.STORE.get('inv:' + q.invoice_payload, 'json');
   const ok = !!inv && !inv.paid && inv.user === q.from.id && q.currency === 'XTR' && q.total_amount === inv.stars;
   return tg(env, 'answerPreCheckoutQuery', ok ? { pre_checkout_query_id: q.id, ok: true } : { pre_checkout_query_id: q.id, ok: false, error_message: lang(q.from) === 'ru' ? 'Счёт устарел. Откройте оплату заново.' : 'Hisob eskirgan. To‘lovni qaytadan oching.' });
@@ -187,6 +195,19 @@ export default {
       } catch (e) { console.log('xato', e && e.stack); }
       return new Response('ok');
     }
+
+    // Umumiy baza: o‘z e’lonlarini yuborish, boshqalarnikini olish (D1 ulangan bo‘lsa)
+    if (url.pathname === '/api/sync' && req.method === 'POST') {
+      if (!env.DB) return json(h, { error: 'nodb' }, 503);
+      const b = await req.json().catch(() => ({}));
+      const user = await checkInitData(b.initData, env.BOT_TOKEN, 7 * 86400);
+      if (!user || !user.id) return json(h, { error: 'auth' }, 401);
+      try {
+        return json(h, await sync(env, user, b));
+      } catch (e) { console.log('sync xato', e && e.stack); return json(h, { error: 'db' }, 500); }
+    }
+
+    if (!tolovOn(env) && (url.pathname === '/narx' || url.pathname === '/invoice')) return json(h, { error: 'off' }, 404);
 
     if (url.pathname === '/narx') return json(h, await price(env));
 

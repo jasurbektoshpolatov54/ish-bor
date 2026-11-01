@@ -1,4 +1,4 @@
-// Haqiqiy foydalanuvchi kabi bosib chiqadi: birinchi ochilish, e’lon joylash, TOP, shikoyat, Nazorat, Sinov.
+// Haqiqiy foydalanuvchi kabi bosib chiqadi: birinchi ochilish, e’lon joylash, to‘lov yashirinligi, shikoyat, Nazorat, Sinov.
 // Ishga tushirish: PW=$(npm root -g)/playwright node tests/e2e/flow.mjs [rasmlar papkasi]
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
@@ -93,15 +93,18 @@ await has('250 000'); await shot('forma-toliq');
 await tap('psubmit'); await expectScreen('done'); await shot('joylandi');
 await tap('nav', 'home'); await has('Yuk tashish'); await shot('home-elon');
 
-// TOP
-await tap('nav', 'profile'); await expectScreen('profile'); await shot('profil');
-await tap('mine'); await expectScreen('mybor'); await shot('mening-elonim');
-await tap('top'); await expectScreen('tarif'); await shot('tarif');
-await tap('topgo'); await expectScreen('pay'); await tap('payapp', 'click'); await shot('tolov');
-answers.push(true);
-await tap('paygo'); await p.waitForTimeout(300);
-await expectScreen('paid'); await has('TOP yoqildi'); await shot('tolov-qabul');
-await tap('nav', 'profile'); await expectScreen('profile');
+// To‘lov kaliti o‘chiq: TOP, tarif va to‘lov hech qayerda ko‘rinmaydi
+const noPay = async (where) => {
+  if (await p.locator('[data-a="top"], [data-a="topgo"], [data-a="paygo"]').count()) errs.push(`${where}: TOP/to‘lov tugmasi ko‘rindi`);
+  const txt = await p.locator('#app').innerText();
+  if (/\bTOP\b|tarif|To‘lov|to‘lash/i.test(txt)) errs.push(`${where}: to‘lov haqida yozuv ko‘rindi`);
+};
+await tap('nav', 'profile'); await expectScreen('profile'); await shot('profil'); await noPay('profil');
+await tap('mine'); await expectScreen('mybor'); await shot('mening-elonim'); await noPay('mening e’lonim');
+await tap('back'); await expectScreen('profile'); await tap('help'); await expectScreen('help');
+for (let i = 0; i < await p.locator('[data-a="hq"]').count(); i++) await tap('hq', String(i));
+await shot('yordam'); await noPay('yordam');
+await tap('back'); await expectScreen('profile');
 
 // Ish kerak e’loni
 await tap('nav', 'post'); await tap('pkind', 'kerak'); await shot('forma-kerak');
@@ -145,10 +148,11 @@ await fill('[data-in="acode"]', 'xatokod12345'); await tap('alogin'); await p.wa
 await expectScreen('aLogin');
 await fill('[data-in="acode"]', CODE); await tap('alogin'); await p.waitForTimeout(1500);
 await expectScreen('aB'); await shot('nazorat-bugun');
-for (const [v, s] of [['n', 'aC'], ['o', 'aD'], ['p', 'aE'], ['y', 'aF']]) { await tap('anav', v); await expectScreen(s); await shot('nazorat-' + s); }
-for (const v of ['G', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S']) { await tap('anav', 'y'); await tap('go', v); await expectScreen('a' + v); await shot('nazorat-a' + v); await tap('back'); }
-await tap('anav', 'o'); await tap('uopen', 'owner'); await expectScreen('aI'); await shot('odam-karta'); await tap('back');
-await tap('anav', 'p'); await tap('popen'); await expectScreen('aJ'); await shot('tolov-tafsilot'); await tap('back');
+if (await p.locator('[data-a="anav"][data-v="p"]').count()) errs.push('Nazorat: “Pul” bo‘limi ko‘rindi');
+await noPay('Nazorat · Bugun');
+for (const [v, s] of [['n', 'aC'], ['o', 'aD'], ['y', 'aF']]) { await tap('anav', v); await expectScreen(s); await shot('nazorat-' + s); await noPay('Nazorat · ' + s); }
+for (const v of ['G', 'K', 'L', 'N', 'O', 'P', 'Q', 'R', 'S']) { await tap('anav', 'y'); await tap('go', v); await expectScreen('a' + v); await shot('nazorat-a' + v); if (v !== 'K') await noPay('Nazorat · a' + v); /* K: shubhali so‘zlar ro‘yxati */ await tap('back'); }
+await tap('anav', 'o'); await tap('uopen', 'owner'); await expectScreen('aI'); await shot('odam-karta'); await noPay('odam kartasi'); await tap('back');
 
 // Sinov: boshqa odam bo‘lib shikoyat
 await tap('anav', 'y'); await tap('go', 'S');
@@ -167,7 +171,7 @@ await tap('nav', 'profile'); await tap('admin'); await fill('[data-in="acode"]',
 await tap('anav', 'n'); await has('Jiddiy'); await shot('navbat-shikoyat');
 await tap('qopen'); await expectScreen('aH'); await shot('navbat-element'); await tap('back');
 
-// Vaqt: +7 kun → TOP tugaydi, e’lon (ertaga) yopiladi
+// Vaqt: +7 kun → e’lon (ertaga) yopiladi
 await tap('anav', 'y'); await tap('go', 'S'); await tap('shift', '7'); await shot('sinov-7kun');
 await tap('back'); await tap('aexit'); await tap('nav', 'profile'); await has('Tekshirilmoqda'); await shot('profil-7-kundan-keyin');
 // 2a: o‘z e’lonini o‘chirish

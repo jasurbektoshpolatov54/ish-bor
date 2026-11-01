@@ -17,7 +17,11 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      APP_REF: claude/project-thread-1d1pyx
+      # Ilova kodi shu shoxobchaning o‘zidan yig‘iladi (src/core/flags.ts dagi to‘lov kaliti bilan).
+      APP_REF: ${{ github.ref_name }}
+      # To‘lov (TOP, Telegram Stars) hozir o‘chiq: ilova bepul. Qaytarish uchun GitHub → Settings →
+      # Secrets and variables → Actions → Variables da TOLOV=on qo‘ying va src/core/flags.ts da tolov: true qiling.
+      TOLOV: ${{ vars.TOLOV || 'off' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -32,7 +36,8 @@ jobs:
           cache: npm
           cache-dependency-path: app/package-lock.json
 
-      # Stars serveri (bepul Cloudflare Worker): bot webhook'i, TOP narxi va to'lov hisoblari.
+      # Bot serveri (bepul Cloudflare Worker): bot webhook'i (/start → «Ochish»).
+      # TOLOV=on bo'lsagina TOP narxi va Stars to'lov hisoblari ishlaydi; hozir o'chiq.
       # CLOUDFLARE_API_TOKEN bo'lmasa o'tkazib yuboriladi va ilova Starssiz yig'iladi.
       - name: Stars serveri (Cloudflare)
         id: stars
@@ -44,6 +49,7 @@ jobs:
           if [ -z "$CLOUDFLARE_API_TOKEN" ]; then echo "::notice::CLOUDFLARE_API_TOKEN yo‘q: Stars to‘lovi o‘chiq"; exit 0; fi
           if [ -z "$TOKEN" ]; then echo "::error::TELEGRAM_BOT_TOKEN yo‘q"; exit 1; fi
           node worker/test.mjs
+          node --no-warnings worker/sync-test.mjs
           CF=https://api.cloudflare.com/client/v4
           cf() { curl -sS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H 'Content-Type: application/json' "$@"; }
           ACC=$(cf "$CF/accounts" | jq -r '.result[0].id // empty')
@@ -56,6 +62,10 @@ jobs:
           KV=$(cf "$CF/accounts/$ACC/storage/kv/namespaces?per_page=100" | jq -r '.result[]? | select(.title=="mehnat-bot") | .id')
           if [ -z "$KV" ]; then KV=$(cf -X POST "$CF/accounts/$ACC/storage/kv/namespaces" -d '{"title":"mehnat-bot"}' | jq -r '.result.id // empty'); fi
           if [ -z "$KV" ]; then echo "::error::KV ombori ochilmadi"; exit 1; fi
+          # Umumiy baza (D1): e'lonlar, odamlar, mos e'lon xabarlari. Kalitda D1 ruxsati bo'lmasa, ilova bazasiz ishlaydi.
+          D1=$(cf "$CF/accounts/$ACC/d1/database?name=mehnat-db" | jq -r '.result[]? | select(.name=="mehnat-db") | .uuid')
+          if [ -z "$D1" ]; then D1=$(cf -X POST "$CF/accounts/$ACC/d1/database" -d '{"name":"mehnat-db"}' | jq -r '.result.uuid // empty'); fi
+          if [ -z "$D1" ]; then echo "::warning::D1 bazasi ochilmadi: Cloudflare kalitiga «D1 — Edit» ruxsatini qo‘shing. Hozircha e’lonlar faqat har kimning telefonida."; fi
           # MB kursi: Cloudflare'dan cbu.uz ba'zan ochilmaydi, shuning uchun bugungi kursni shu yerdan ham yozib qo'yamiz.
           J=$(curl -sS --max-time 8 https://cbu.uz/uz/arkhiv-kursov-valyut/json/USD/ || true)
           RATE=$(echo "$J" | jq -r '.[0].Rate // empty' 2>/dev/null || true)
@@ -72,12 +82,16 @@ jobs:
           account_id = "$ACC"
           workers_dev = true
           kv_namespaces = [{ binding = "STORE", id = "$KV" }]
+          EOT
+          if [ -n "$D1" ]; then printf '[[d1_databases]]\nbinding = "DB"\ndatabase_name = "mehnat-db"\ndatabase_id = "%s"\n' "$D1" >> worker/wrangler.toml; fi
+          cat >> worker/wrangler.toml <<EOT
           [vars]
           APP_URL = "https://${OWNER,,}.github.io/${NAME}/"
           TOP_SOUM = "${{ vars.TOP_SOUM || '5000' }}"
           TOP_DAYS = "${{ vars.TOP_DAYS || '7' }}"
           STAR_USD = "${{ vars.STAR_USD || '0.02' }}"
           USD_RATE_FALLBACK = "12500"
+          TOLOV = "$TOLOV"
           EOT
           WH=$(printf '%s' "webhook:$TOKEN" | sha256sum | cut -c1-48)
           AH=""; if [ -n "$ADMIN_INITIAL_CODE" ]; then AH=$(printf '%s' "$ADMIN_INITIAL_CODE" | sha256sum | cut -d' ' -f1); fi
@@ -86,13 +100,16 @@ jobs:
           umask 077; jq -n --arg a "$TOKEN" --arg b "$WH" --arg c "$AH" '{BOT_TOKEN:$a, WEBHOOK_SECRET:$b, ADMIN_HASH:$c}' > "$RUNNER_TEMP/s.json"
           npx --yes wrangler@3.114.17 secret bulk "$RUNNER_TEMP/s.json"; rm -f "$RUNNER_TEMP/s.json"
           URL="https://mehnat-bot.$SUB.workers.dev"
-          for i in $(seq 1 30); do if curl -fsS "$URL/narx" | jq -e .stars >/dev/null 2>&1; then OK=1; break; fi; sleep 10; done
+          for i in $(seq 1 30); do if curl -fsS "$URL/" | grep -q 'ishlayapti'; then OK=1; break; fi; sleep 10; done
           if [ -z "$OK" ]; then echo "::error::$URL javob bermadi"; exit 1; fi
-          curl -fsS "$URL/narx" | jq -c . | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$TOLOV" = on ]; then curl -fsS "$URL/narx" | jq -c . | tee -a "$GITHUB_STEP_SUMMARY"; fi
           curl -fsS "https://api.telegram.org/bot$TOKEN/setWebhook" -H 'Content-Type: application/json' \
             -d "$(jq -nc --arg u "$URL/tg" --arg s "$WH" '{url:$u, secret_token:$s, allowed_updates:["message","pre_checkout_query"]}')" | jq -c .
           echo "Stars serveri: $URL" >> "$GITHUB_STEP_SUMMARY"
-          echo "api=$URL" >> "$GITHUB_OUTPUT"
+          # Ilovaga Stars faqat to'lov yoqiq bo'lsa ulanadi.
+          if [ "$TOLOV" = on ]; then echo "api=$URL" >> "$GITHUB_OUTPUT"; else echo "To‘lov o‘chiq: ilovada Stars yo‘q" >> "$GITHUB_STEP_SUMMARY"; fi
+          # Umumiy baza: ilova e'lonlarni shu server orqali almashadi
+          if [ -n "$D1" ]; then echo "server=$URL" >> "$GITHUB_OUTPUT"; echo "Umumiy baza: ulangan (D1 mehnat-db)" >> "$GITHUB_STEP_SUMMARY"; fi
 
       # Telegramga moslash: oynachalar, til tanlash, bosh sahifa yozuvi.
       # Faqat shu yig‘ishda; ilova kodidagi asl fayllar o‘zgarmaydi.
@@ -113,8 +130,10 @@ jobs:
       - name: Telegram skripti
         env:
           STARS_API: ${{ steps.stars.outputs.api }}
+          SERVER_API: ${{ steps.stars.outputs.server }}
         run: |
           sed -i "s|%STARS_API%|$STARS_API|" telegram/inject.html
+          sed -i "s|%SERVER_API%|$SERVER_API|" telegram/inject.html
           awk 'FNR==NR{t=t $0 "\n"; next} /<\/head>/{printf "%s", t} 1' telegram/inject.html app/dist/index.html > index.tmp
           mv index.tmp app/dist/index.html
           grep -q telegram-web-app.js app/dist/index.html

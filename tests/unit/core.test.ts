@@ -1,8 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, onTestFinished } from 'vitest';
 import { freshDB } from '../../src/core/seed';
 import { keepStep, search, suspicious, complaintTrigger, extendTop, isTop, codeRules, title, haversine } from '../../src/core/rules';
 import { money, dist, dayName, ago, daysLabel, normPhone, maskPhone, dayStart, DAY_MS, hhmm } from '../../src/core/format';
 import { pbkdf2, same } from '../../src/core/crypto';
+import { flags } from '../../src/core/flags';
 import type { Listing, User } from '../../src/core/types';
 
 const T = Date.UTC(2026, 9, 28, 7, 0); // 28-oktabr, Toshkent 12:00
@@ -46,7 +47,18 @@ describe('format', () => {
 });
 
 describe('qidiruv', () => {
+  it('to‘lov kaliti o‘chiq: TOP hech kimni oldinga chiqarmaydi', () => {
+    expect(flags.tolov).toBe(false);
+    const db = freshDB();
+    db.users.push(user('o'));
+    const a = bor('a', { createdAt: T - 1000 });
+    const b = bor('b', { createdAt: T - 5000, topUntil: T + DAY_MS, topStarted: T - 4000 });
+    db.listings.push(a, b);
+    expect(isTop(b, T)).toBe(false);
+    expect(search(db, undefined, { kind: 'bor', jobs: ['yuk'] }, T).map((l) => l.id)).toEqual(['a', 'b']);
+  });
   it('TOP faqat mos e’lonlar ichida birinchi turadi', () => {
+    flags.tolov = true; onTestFinished(() => { flags.tolov = false; });
     const db = freshDB();
     db.users.push(user('o'));
     const a = bor('a', { createdAt: T - 1000 });
@@ -106,6 +118,7 @@ describe('xavfsizlik', () => {
     expect(complaintTrigger(db2, 'y')).toBe(true);
   });
   it('TOP muddati qo‘shiladi', () => {
+    flags.tolov = true; onTestFinished(() => { flags.tolov = false; });
     const l = bor('a');
     extendTop(l, 7, T);
     expect(l.topUntil).toBe(T + 7 * DAY_MS);

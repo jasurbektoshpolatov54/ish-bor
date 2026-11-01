@@ -10,7 +10,7 @@ const STORE = {
   async put(k, v) { kv.set(k, v); },
   async list({ prefix, limit }) { return { keys: [...kv.keys()].filter((k) => k.startsWith(prefix)).sort().slice(0, limit).map((name) => ({ name })) }; },
 };
-const env = { STORE, BOT_TOKEN: TOKEN, WEBHOOK_SECRET: 's', APP_URL: 'https://x.github.io/ish-bor/', TOP_SOUM: '5000', STAR_USD: '0.02', TOP_DAYS: '7', USD_RATE_FALLBACK: '12500' };
+const env = { STORE, BOT_TOKEN: TOKEN, WEBHOOK_SECRET: 's', APP_URL: 'https://x.github.io/ish-bor/', TOLOV: 'off', TOP_SOUM: '5000', STAR_USD: '0.02', TOP_DAYS: '7', USD_RATE_FALLBACK: '12500' };
 const calls = [];
 globalThis.fetch = async (u, o) => {
   if (String(u).includes('cbu.uz')) { if (globalThis.cbuDown) throw new Error('522'); return { ok: true, json: async () => [{ Ccy: 'USD', Rate: '12345.67', Date: '31.10.2026' }] }; }
@@ -27,6 +27,21 @@ function initData(user, t = Math.floor(Date.now() / 1000)) {
   return p.toString();
 }
 
+const req = (path, body, headers = {}) => bot.fetch(new Request('https://w.dev' + path, body ? { method: 'POST', body: JSON.stringify(body), headers } : {}), env);
+const H = { 'X-Telegram-Bot-Api-Secret-Token': 's' };
+// To'lov o'chiq (hozirgi holat): narx/hisob yo'q, to'lov buyruqlari jim, /start ishlaydi
+assert.equal((await req('/narx')).status, 404);
+assert.equal((await req('/invoice', { initData: initData({ id: 7 }), order: 'IB-1' })).status, 404);
+assert.match(await (await req('/')).text(), /ishlayapti/);
+for (const text of ['/paysupport', '/terms']) { const k = calls.length; await req('/tg', { message: { message_id: 1, chat: { id: 7 }, from: { id: 7 }, text } }, H); assert.equal(calls.length, k, text + ' jim bo‘lishi kerak'); }
+await req('/tg', { pre_checkout_query: { id: 'pq0', from: { id: 7 }, currency: 'XTR', total_amount: 21, invoice_payload: 'x' } }, H);
+assert.equal(calls.at(-1)[1].ok, false);
+await req('/tg', { message: { message_id: 1, chat: { id: 7 }, from: { id: 7 }, text: '/start' } }, H);
+assert.equal(calls.at(-1)[1].reply_markup.inline_keyboard[0][0].web_app.url, env.APP_URL);
+calls.length = 0;
+// Quyidagilar to'lov yoqilgan holat uchun (TOLOV=on)
+env.TOLOV = 'on';
+
 // narx
 const pr = priceFor(5000, 0.02, 12345.67);
 assert.equal(pr.stars, 21); assert.equal(pr.soum, 5185.18);
@@ -35,7 +50,6 @@ assert.equal((await checkInitData(initData({ id: 7 }), TOKEN)).id, 7);
 assert.equal(await checkInitData(initData({ id: 7 }).replace('id%22%3A7', 'id%22%3A8'), TOKEN), null);
 assert.equal(await checkInitData(initData({ id: 7 }, 1000), TOKEN), null);
 
-const req = (path, body, headers = {}) => bot.fetch(new Request('https://w.dev' + path, body ? { method: 'POST', body: JSON.stringify(body), headers } : {}), env);
 const n = await (await req('/narx')).json();
 assert.equal(n.stars, 21); assert.equal(n.soum, 5185.18);
 assert.equal((await req('/invoice', { initData: 'bad', order: 'IB-1' })).status, 401);
@@ -43,7 +57,6 @@ const inv = await (await req('/invoice', { initData: initData({ id: 7, language_
 assert.equal(inv.link, 'https://t.me/$inv');
 const ci = calls.find((c) => c[0] === 'createInvoiceLink')[1];
 assert.equal(ci.currency, 'XTR'); assert.equal(ci.prices[0].amount, 21);
-const H = { 'X-Telegram-Bot-Api-Secret-Token': 's' };
 assert.equal((await req('/tg', {}, {})).status, 403);
 await req('/tg', { pre_checkout_query: { id: 'pq', from: { id: 7 }, currency: 'XTR', total_amount: 21, invoice_payload: ci.payload } }, H);
 assert.equal(calls.at(-1)[1].ok, true);
