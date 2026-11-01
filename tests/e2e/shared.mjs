@@ -77,6 +77,8 @@ await V.p.waitForTimeout(1500); // serverga yuborilishini kutish
 // 3) Ali ilovani qayta ochadi: bosh sahifada “Sizga mos ishlar” — Valining ishi
 await A.p.reload(); await A.p.waitForTimeout(2000);
 { const t = await A.text(); if (!t.includes('Sizga mos ishlar') || !t.includes('300 000')) errs.push('Ali: “Sizga mos ishlar”da Valining ishi yo‘q'); }
+if ((await A.text()).split('300 000').length !== 2) errs.push('Ali: bir xil e’lon bosh sahifada takrorlandi');
+if ((await A.text()).includes('Hozircha e’lon yo‘q')) errs.push('Ali: “Hozircha e’lon yo‘q” chiqmasligi kerak');
 await shot(A.p, 'ali-bosh-sahifa-mos-ishlar');
 // E’lonni ochish: Valining username’i yo‘q, raqami ko‘rinadi
 await A.p.locator('.lc', { hasText: '300 000' }).first().click(); await A.p.waitForTimeout(200);

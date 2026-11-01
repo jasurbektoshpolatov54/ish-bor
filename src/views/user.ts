@@ -18,8 +18,8 @@ export const home = (v: HomeVM) => `${bg}
 </div>
 ${v.offers.length ? `<div class="secrow"><b>${v.offersT}</b><span></span></div>
 ${v.offers.map(lc).join('\n')}` : ''}
-<div class="secrow"><b>Yaqin atrofda</b><span${v.near.length ? A('list', v.kind) : ''}>${v.near.length ? 'Barchasi' : ''}</span></div>
-${v.near.length ? v.near.map(lc).join('\n') : empty('pin', 'Hozircha e’lon yo‘q', 'Birinchi bo‘lib e’lon joylang')}
+${!v.near.length && v.offers.length ? '' : `<div class="secrow"><b>Yaqin atrofda</b><span${v.near.length ? A('list', v.kind) : ''}>${v.near.length ? 'Barchasi' : ''}</span></div>
+${v.near.length ? v.near.map(lc).join('\n') : empty('pin', 'Hozircha e’lon yo‘q', 'Birinchi bo‘lib e’lon joylang')}`}
 ${nav('h')}`;
 
 /* 3.2 E’lonlar */

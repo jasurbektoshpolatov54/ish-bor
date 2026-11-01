@@ -86,12 +86,14 @@ function screenHtml(s: Scr): string {
   const t = now();
   switch (s.n) {
     case 'home': {
-      const near = search(db, u, { kind: ui.homeKind }, t).slice(0, 3).map((l) => lcFor(l, u, 'home'));
       // Mening faol e’lonlarimga mos e’lonlar (ishchiga — yangi ishlar, ish beruvchiga — ishchilar), yangisi tepada
       const mineOn = u ? myListings(u).filter((l) => l.status === 'faol') : [];
       const seen = new Set<string>();
       const offers = mineOn.flatMap((l) => offersFor(db, l, t)).filter((x) => !seen.has(x.id) && !!seen.add(x.id)).sort((a, b) => b.createdAt - a.createdAt).slice(0, 3);
       const kinds = new Set(mineOn.map((l) => l.kind));
+      // “Yaqin atrofda”da “Sizga mos”dagi e’lon takrorlanmaydi
+      const shown = new Set(offers.map((l) => l.id));
+      const near = search(db, u, { kind: ui.homeKind }, t).filter((l) => !shown.has(l.id)).slice(0, 3).map((l) => lcFor(l, u, 'home'));
       const offersT = kinds.size > 1 ? 'Sizga mos e’lonlar' : kinds.has('bor') ? 'Sizga mos ishchilar' : 'Sizga mos ishlar';
       return U.home({ letter: letter(u), name: u?.name, kind: ui.homeKind, cntBor: money(count('bor')), cntKerak: money(count('kerak')), near, offers: offers.map((l) => lcFor(l, u, 'home')), offersT });
     }
