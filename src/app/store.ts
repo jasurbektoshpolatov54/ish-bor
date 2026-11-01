@@ -32,9 +32,12 @@ export function ensureAdmin() {
 }
 
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
+let afterSave: () => void = () => {};
+/** Saqlangandan keyin (umumiy baza bilan almashish uchun) */
+export const setAfterSave = (f: () => void) => { afterSave = f; };
 export function save() {
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => { void saveText(KEY, JSON.stringify(db)); }, 150);
+  saveTimer = setTimeout(() => { void saveText(KEY, JSON.stringify(db)); afterSave(); }, 150);
 }
 export async function flush() { clearTimeout(saveTimer); await saveText(KEY, JSON.stringify(db)); }
 export function replace(d: DB) { db = d; ensureAdmin(); }

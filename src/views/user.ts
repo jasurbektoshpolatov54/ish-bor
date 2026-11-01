@@ -7,7 +7,7 @@ const avBlue = 'background:radial-gradient(circle at 35% 30%,#9cb8ff,#4a6fd8 75%
 const spacer = (h = 18) => `<div class="spacer" style="min-height:${h}px"></div>`;
 
 /* 3.1 Bosh sahifa */
-export interface HomeVM { letter?: string; name?: string; kind: 'bor' | 'kerak'; cntBor: string; cntKerak: string; near: LcData[] }
+export interface HomeVM { letter?: string; name?: string; kind: 'bor' | 'kerak'; cntBor: string; cntKerak: string; near: LcData[]; offers: LcData[]; offersT: string }
 export const home = (v: HomeVM) => `${bg}
 <div class="greet"><div class="av"${v.letter ? '' : ' style="font-size:0"'}>${v.letter || I('user', 2)}</div><div><small>${v.name ? 'Assalomu alaykum,' : 'Assalomu alaykum!'}</small><b>${v.name || 'Xush kelibsiz'}</b></div><div class="sbtn"${A('search')}>${I('search')}</div></div>
 <div class="h2 mt14" style="font-size:20px;letter-spacing:-.5px;line-height:1.2">Halol mehnat, vositachisiz</div>
@@ -16,8 +16,10 @@ export const home = (v: HomeVM) => `${bg}
  <div class="bigc g${v.kind === 'bor' ? ' on' : ''}"${A('hkind', 'bor')}><div class="hd"><div class="ic">${I('brief')}</div><b>Ish bor</b></div><div class="cnt">${v.cntBor} ta e’lon ${I('chev', 2.2)}</div></div>
  <div class="bigc s${v.kind === 'kerak' ? ' on' : ''}"${A('hkind', 'kerak')}><div class="hd"><div class="ic">${I('user')}</div><b>Ish kerak</b></div><div class="cnt">${v.cntKerak} ta ishchi ${I('chev', 2.2)}</div></div>
 </div>
-<div class="secrow"><b>Yaqin atrofda</b><span${v.near.length ? A('list', v.kind) : ''}>${v.near.length ? 'Barchasi' : ''}</span></div>
-${v.near.length ? v.near.map(lc).join('\n') : empty('pin', 'Hozircha e’lon yo‘q', 'Birinchi bo‘lib e’lon joylang')}
+${v.offers.length ? `<div class="secrow"><b>${v.offersT}</b><span></span></div>
+${v.offers.map(lc).join('\n')}` : ''}
+${!v.near.length && v.offers.length ? '' : `<div class="secrow"><b>Yaqin atrofda</b><span${v.near.length ? A('list', v.kind) : ''}>${v.near.length ? 'Barchasi' : ''}</span></div>
+${v.near.length ? v.near.map(lc).join('\n') : empty('pin', 'Hozircha e’lon yo‘q', 'Birinchi bo‘lib e’lon joylang')}`}
 ${nav('h')}`;
 
 /* 3.2 E’lonlar */
@@ -131,7 +133,7 @@ ${spacer()}
 <div class="btn gold"${A('psubmit')}${offIf(!v.ready)}>E’lonni joylash</div>`;
 
 /* 3.7 Joylandi */
-export interface DoneVM { kind: 'bor' | 'kerak'; icon: string; title: string; pay: string; whenL: string; when: string }
+export interface DoneVM { kind: 'bor' | 'kerak'; icon: string; title: string; pay: string; whenL: string; when: string; offers: LcData[]; more: number }
 export const done = (v: DoneVM) => `${bg}
 <div class="hdr">E’lon joylash</div>
 <div class="mt28"></div>
@@ -142,6 +144,8 @@ ${rings(I('check', 3), '', minty)}
 ${row(v.icon, v.title, v.pay)}
 ${row('cal', v.whenL, v.when)}
 </div>
+${v.offers.length ? `<div class="secrow"><b>${v.kind === 'bor' ? 'Sizga mos ishchilar' : 'Sizga mos ishlar'}</b><span>${v.offers.length + v.more} ta</span></div>
+${v.offers.map(lc).join('\n')}` : ''}
 ${spacer(24)}
 <div class="btn gold"${A('nav', 'home')}>Bosh sahifaga</div>`;
 

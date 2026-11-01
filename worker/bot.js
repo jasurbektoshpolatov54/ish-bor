@@ -4,6 +4,9 @@
 // TOLOV = "on" bo'lmasa (hozir shunday) to'lov qismi yashirin: /narx, /invoice, /paysupport, /terms javob bermaydi.
 // Sirlar: BOT_TOKEN, WEBHOOK_SECRET, ADMIN_HASH (Nazorat kodining sha256 xeshi)
 // Ma'lumotlar: KV (STORE) — inv:<id> (hisob), pay:<vaqt>:<charge> (to'lov), rate (kurs), admins
+// Umumiy baza: D1 (DB) — odamlar va e'lonlar (worker/match.js, /api/sync)
+
+import { sync } from './match.js';
 
 const enc = new TextEncoder();
 const hex = (b) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
@@ -191,6 +194,17 @@ export default {
         else if (u.message) await onMessage(env, u.message);
       } catch (e) { console.log('xato', e && e.stack); }
       return new Response('ok');
+    }
+
+    // Umumiy baza: o‘z e’lonlarini yuborish, boshqalarnikini olish (D1 ulangan bo‘lsa)
+    if (url.pathname === '/api/sync' && req.method === 'POST') {
+      if (!env.DB) return json(h, { error: 'nodb' }, 503);
+      const b = await req.json().catch(() => ({}));
+      const user = await checkInitData(b.initData, env.BOT_TOKEN, 7 * 86400);
+      if (!user || !user.id) return json(h, { error: 'auth' }, 401);
+      try {
+        return json(h, await sync(env, user, b));
+      } catch (e) { console.log('sync xato', e && e.stack); return json(h, { error: 'db' }, 500); }
     }
 
     if (!tolovOn(env) && (url.pathname === '/narx' || url.pathname === '/invoice')) return json(h, { error: 'off' }, 404);
