@@ -89,22 +89,6 @@ const T = {
     ru: 'Честный труд, без посредников. Находите друг друга напрямую.\n\n👇 Нажмите кнопку, чтобы открыть приложение.',
   },
   open: { uz: 'Ochish', ru: 'Открыть' },
-  help: {
-    uz: 'Ilovadan qanday foydalaniladi:\n\n'
-      + '1. Pastdagi «Ochish» tugmasini bosing.\n'
-      + '2. Ish kerak bo‘lsa: «+» → «Ish kerak» → qila oladigan ishlaringiz, hududingiz va kunlik haqingiz → «E’lonni joylash».\n'
-      + '3. Ishchi kerak bo‘lsa: «+» → «Ish bor» → ish turi, joyi, vaqti va haqi → «E’lonni joylash».\n'
-      + '4. Bosh sahifadagi «Sizga mos» bo‘limida e’loningizga mos ishlar yoki ishchilar chiqadi. Yoqqanini ochib, qo‘ng‘iroq qiling yoki Telegramda yozing.\n\n'
-      + 'Hech kimga oldindan pul to‘lamang.\n\n'
-      + 'Savolingiz bo‘lsa, shu chatga yozing: javob shu yerga keladi.',
-    ru: 'Как пользоваться приложением:\n\n'
-      + '1. Нажмите кнопку «Открыть» внизу.\n'
-      + '2. Ищете работу: «+» → «Ish kerak» → что умеете, район и оплата за день → «Разместить».\n'
-      + '3. Нужны работники: «+» → «Ish bor» → вид работы, место, время и оплата → «Разместить».\n'
-      + '4. На главной в разделе «Подходящие» появятся подходящие вакансии или работники. Откройте и позвоните или напишите в Telegram.\n\n'
-      + 'Никому не платите заранее.\n\n'
-      + 'Есть вопрос — напишите в этот чат, ответ придёт сюда.',
-  },
   ask: { uz: 'Savolingizni shu yerga bitta xabarda yozing. Javob shu chatga keladi.', ru: 'Напишите вопрос сюда одним сообщением. Ответ придёт в этот чат.' },
   asked: { uz: '✅ Savolingiz yuborildi. Javob shu chatga keladi.', ru: '✅ Вопрос отправлен. Ответ придёт в этот чат.' },
   answer: { uz: '💬 Javob:', ru: '💬 Ответ:' },
@@ -147,7 +131,6 @@ async function onMessage(env, m) {
   if (c === '/start') {
     return tg(env, 'sendMessage', { chat_id: m.chat.id, text: T.start[L], reply_markup: openBtn });
   }
-  if (c === '/yordam' || c === '/help') return tg(env, 'sendMessage', { chat_id: m.chat.id, text: T.help[L], reply_markup: openBtn });
   if (c === '/savol') return tg(env, 'sendMessage', { chat_id: m.chat.id, text: T.ask[L] });
   // Nazorat odami savolga javob yozdi (savol xabariga «Javob berish» bilan)
   if (text && !text.startsWith('/') && m.reply_to_message && (await isAdmin(env, m.from.id))) {

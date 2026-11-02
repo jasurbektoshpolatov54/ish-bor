@@ -78,9 +78,7 @@ await req('/tg', { message: { message_id: 5, chat: { id: 7 }, from: { id: 7 }, t
 assert.ok(calls.some((c) => c[0] === 'refundStarPayment' && c[1].telegram_payment_charge_id === 'ch1'));
 await req('/tg', { message: { message_id: 6, chat: { id: 7 }, from: { id: 7 }, text: '/start' } }, H);
 assert.equal(calls.at(-1)[1].reply_markup.inline_keyboard[0][0].web_app.url, env.APP_URL);
-// /yordam, /savol va savol-javob (admin — 7)
-await req('/tg', { message: { message_id: 20, chat: { id: 9, type: 'private' }, from: { id: 9, language_code: 'ru' }, text: '/yordam' } }, H);
-assert.match(calls.at(-1)[1].text, /Как пользоваться/); assert.equal(calls.at(-1)[1].reply_markup.inline_keyboard[0][0].web_app.url, env.APP_URL);
+// /savol va savol-javob (admin — 7)
 await req('/tg', { message: { message_id: 21, chat: { id: 9, type: 'private' }, from: { id: 9 }, text: '/savol' } }, H);
 assert.match(calls.at(-1)[1].text, /Savolingizni/);
 await req('/tg', { message: { message_id: 22, chat: { id: 9, type: 'private' }, from: { id: 9, first_name: 'Ali', username: 'ali' }, text: 'E’lonni qanday o‘chiraman?' } }, H);
