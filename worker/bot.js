@@ -89,6 +89,25 @@ const T = {
     ru: 'Честный труд, без посредников. Находите друг друга напрямую.\n\n👇 Нажмите кнопку, чтобы открыть приложение.',
   },
   open: { uz: 'Ochish', ru: 'Открыть' },
+  help: {
+    uz: 'Ilovadan qanday foydalaniladi:\n\n'
+      + '1. Pastdagi «Ochish» tugmasini bosing.\n'
+      + '2. Ish kerak bo‘lsa: «+» → «Ish kerak» → qila oladigan ishlaringiz, hududingiz va kunlik haqingiz → «E’lonni joylash».\n'
+      + '3. Ishchi kerak bo‘lsa: «+» → «Ish bor» → ish turi, joyi, vaqti va haqi → «E’lonni joylash».\n'
+      + '4. Bosh sahifadagi «Sizga mos» bo‘limida e’loningizga mos ishlar yoki ishchilar chiqadi. Yoqqanini ochib, qo‘ng‘iroq qiling yoki Telegramda yozing.\n\n'
+      + 'Hech kimga oldindan pul to‘lamang.\n\n'
+      + 'Savolingiz bo‘lsa, shu chatga yozing: javob shu yerga keladi.',
+    ru: 'Как пользоваться приложением:\n\n'
+      + '1. Нажмите кнопку «Открыть» внизу.\n'
+      + '2. Ищете работу: «+» → «Ish kerak» → что умеете, район и оплата за день → «Разместить».\n'
+      + '3. Нужны работники: «+» → «Ish bor» → вид работы, место, время и оплата → «Разместить».\n'
+      + '4. На главной в разделе «Подходящие» появятся подходящие вакансии или работники. Откройте и позвоните или напишите в Telegram.\n\n'
+      + 'Никому не платите заранее.\n\n'
+      + 'Есть вопрос — напишите в этот чат, ответ придёт сюда.',
+  },
+  ask: { uz: 'Savolingizni shu yerga bitta xabarda yozing. Javob shu chatga keladi.', ru: 'Напишите вопрос сюда одним сообщением. Ответ придёт в этот чат.' },
+  asked: { uz: '✅ Savolingiz yuborildi. Javob shu chatga keladi.', ru: '✅ Вопрос отправлен. Ответ придёт в этот чат.' },
+  answer: { uz: '💬 Javob:', ru: '💬 Ответ:' },
   paid: {
     uz: (s, o) => `✅ To‘lov qabul qilindi: ${s} ⭐\nBuyurtma: ${o}\n\nTOP yoqildi. Ilovaga qayting.`,
     ru: (s, o) => `✅ Оплата получена: ${s} ⭐\nЗаказ: ${o}\n\nTOP включён. Вернитесь в приложение.`,
@@ -124,8 +143,29 @@ async function onMessage(env, m) {
   const text = (m.text || '').trim();
   const [cmd, ...args] = text.split(/\s+/);
   const c = cmd.replace(/@\w+$/, '').toLowerCase();
+  const openBtn = { inline_keyboard: [[{ text: T.open[L], web_app: { url: env.APP_URL } }]] };
   if (c === '/start') {
-    return tg(env, 'sendMessage', { chat_id: m.chat.id, text: T.start[L], reply_markup: { inline_keyboard: [[{ text: T.open[L], web_app: { url: env.APP_URL } }]] } });
+    return tg(env, 'sendMessage', { chat_id: m.chat.id, text: T.start[L], reply_markup: openBtn });
+  }
+  if (c === '/yordam' || c === '/help') return tg(env, 'sendMessage', { chat_id: m.chat.id, text: T.help[L], reply_markup: openBtn });
+  if (c === '/savol') return tg(env, 'sendMessage', { chat_id: m.chat.id, text: T.ask[L] });
+  // Nazorat odami savolga javob yozdi (savol xabariga «Javob berish» bilan)
+  if (text && !text.startsWith('/') && m.reply_to_message && (await isAdmin(env, m.from.id))) {
+    const to = await env.STORE.get(`q:${m.chat.id}:${m.reply_to_message.message_id}`, 'json');
+    if (to) {
+      const r = await tg(env, 'sendMessage', { chat_id: to.chat, text: `${T.answer[to.L] || T.answer.uz}\n${text}` });
+      return tg(env, 'sendMessage', { chat_id: m.chat.id, text: r.ok ? '✅ Javob yuborildi.' : 'Yuborilmadi: odam botni to‘xtatgan bo‘lishi mumkin.', reply_to_message_id: m.message_id });
+    }
+  }
+  // Oddiy xabar — savol: Nazorat odamlariga boradi
+  if (text && !text.startsWith('/') && m.chat.type === 'private' && !(await isAdmin(env, m.from.id))) {
+    const admins = (await env.STORE.get('admins', 'json')) || [];
+    const who = [m.from.first_name, m.from.last_name].filter(Boolean).join(' ') + (m.from.username ? ` @${m.from.username}` : '');
+    for (const a of admins) {
+      const r = await tg(env, 'sendMessage', { chat_id: a, text: `❓ Savol — ${who} (id ${m.from.id}):\n\n${text.slice(0, 3500)}\n\nJavob berish uchun shu xabarga «Ответить / Javob berish» qilib yozing.` });
+      if (r.ok) await env.STORE.put(`q:${a}:${r.result.message_id}`, JSON.stringify({ chat: m.chat.id, L }), { expirationTtl: 30 * 86400 });
+    }
+    return tg(env, 'sendMessage', { chat_id: m.chat.id, text: T.asked[L] });
   }
   if (!tolovOn(env) && ['/paysupport', '/terms', '/tolovlar', '/qaytar'].includes(c)) return;
   if (c === '/paysupport') return tg(env, 'sendMessage', { chat_id: m.chat.id, text: T.support[L] });
@@ -137,7 +177,7 @@ async function onMessage(env, m) {
     const a = (await env.STORE.get('admins', 'json')) || [];
     if (!a.includes(m.from.id)) a.push(m.from.id);
     await env.STORE.put('admins', JSON.stringify(a));
-    return tg(env, 'sendMessage', { chat_id: m.chat.id, text: 'Nazorat ulandi.\n/tolovlar — oxirgi to‘lovlar\n/qaytar <raqam> — yulduzlarni qaytarish' });
+    return tg(env, 'sendMessage', { chat_id: m.chat.id, text: 'Nazorat ulandi. Odamlarning savollari shu chatga keladi: javob berish uchun savol xabariga «Javob berish» qilib yozing.' + (tolovOn(env) ? '\n/tolovlar — oxirgi to‘lovlar\n/qaytar <raqam> — yulduzlarni qaytarish' : '') });
   }
   if ((c === '/tolovlar' || c === '/qaytar') && !(await isAdmin(env, m.from.id))) return;
   if (c === '/tolovlar') {

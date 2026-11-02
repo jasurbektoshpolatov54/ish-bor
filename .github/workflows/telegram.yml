@@ -167,6 +167,10 @@ jobs:
             exit 1
           fi
           curl -fsS "$API/getMe" | jq -r '"Bot: @" + .result.username'
+          # Bot buyruqlari menyusi: /start, /yordam, /savol
+          cmds() { curl -fsS "$API/setMyCommands" -H 'Content-Type: application/json' -d "$(jq -nc --argjson c "$1" --arg l "$2" '{commands:$c} + (if $l == "" then {} else {language_code:$l} end)')" | jq -c .; }
+          cmds '[{"command":"start","description":"Boshlash"},{"command":"yordam","description":"Qanday foydalaniladi"},{"command":"savol","description":"Savol yozish"}]' ''
+          cmds '[{"command":"start","description":"Начать"},{"command":"yordam","description":"Как пользоваться"},{"command":"savol","description":"Задать вопрос"}]' 'ru'
           curl -fsS "$API/setChatMenuButton" -H 'Content-Type: application/json' \
             -d "$(jq -nc --arg u "$URL" '{menu_button:{type:"web_app",text:"Ochish",web_app:{url:$u}}}')" | jq -c .
           echo "Mini App manzili: $URL" >> "$GITHUB_STEP_SUMMARY"
