@@ -6,7 +6,7 @@
 // Ma'lumotlar: KV (STORE) — inv:<id> (hisob), pay:<vaqt>:<charge> (to'lov), rate (kurs), admins
 // Umumiy baza: D1 (DB) — odamlar va e'lonlar (worker/match.js, /api/sync)
 
-import { sync } from './match.js';
+import { sync, savePhone, hasPhone } from './match.js';
 
 const enc = new TextEncoder();
 const hex = (b) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
@@ -99,6 +99,23 @@ const T = {
   },
   openL: { lat: 'Ochish', cyr: 'Очиш', ru: 'Открыть' },
   langBtn: { lat: '🌐 Tilni o‘zgartirish', cyr: '🌐 Тилни ўзгартириш', ru: '🌐 Сменить язык' },
+  // Telefon raqami botning o'zida so'raladi (ilovada Telegram oynachasi chiqmaydi)
+  phoneAsk: {
+    lat: '📱 Ish beruvchi yoki ishchi siz bilan bog‘lana olishi uchun telefon raqamingizni yuboring. Pastdagi tugmani bosing.',
+    cyr: '📱 Иш берувчи ёки ишчи сиз билан боғлана олиши учун телефон рақамингизни юборинг. Пастдаги тугмани босинг.',
+    ru: '📱 Чтобы работодатель или работник могли с вами связаться, отправьте свой номер телефона. Нажмите кнопку ниже.',
+  },
+  phoneBtn: { lat: '📱 Raqamni yuborish', cyr: '📱 Рақамни юбориш', ru: '📱 Отправить номер' },
+  phoneOk: {
+    lat: '✅ Raqamingiz qabul qilindi. Endi yuqoridagi «Ochish» tugmasini bosing.',
+    cyr: '✅ Рақамингиз қабул қилинди. Энди юқоридаги «Очиш» тугмасини босинг.',
+    ru: '✅ Номер получен. Теперь нажмите «Открыть» выше.',
+  },
+  phoneOwn: {
+    lat: 'Iltimos, o‘z raqamingizni pastdagi tugma orqali yuboring.',
+    cyr: 'Илтимос, ўз рақамингизни пастдаги тугма орқали юборинг.',
+    ru: 'Пожалуйста, отправьте свой номер кнопкой ниже.',
+  },
   ask: { uz: 'Savolingizni shu yerga bitta xabarda yozing. Javob shu chatga keladi.', ru: 'Напишите вопрос сюда одним сообщением. Ответ придёт в этот чат.' },
   asked: { uz: '✅ Savolingiz yuborildi. Javob shu chatga keladi.', ru: '✅ Вопрос отправлен. Ответ придёт в этот чат.' },
   answer: { uz: '💬 Javob:', ru: '💬 Ответ:' },
@@ -134,12 +151,13 @@ async function onMessage(env, m) {
     await env.STORE.put('inv:' + sp.invoice_payload, JSON.stringify({ ...inv, paid: true, charge: rec.charge }), { expirationTtl: 30 * 86400 });
     return tg(env, 'sendMessage', { chat_id: m.chat.id, text: T.paid[L](rec.stars, rec.order) });
   }
+  if (m.contact) return onContact(env, m);
   const text = (m.text || '').trim();
   const [cmd, ...args] = text.split(/\s+/);
   const c = cmd.replace(/@\w+$/, '').toLowerCase();
   if (c === '/start') {
     const sc = await env.STORE.get('lang:' + m.from.id);
-    return sc ? greet(env, m.chat.id, m.from, sc) : askLang(env, m.chat.id);
+    return sc ? greet(env, m.chat.id, m.from, sc).then(() => askPhone(env, m.chat.id, m.from, sc)) : askLang(env, m.chat.id);
   }
   if (c === '/savol') return tg(env, 'sendMessage', { chat_id: m.chat.id, text: T.ask[L] });
   // Nazorat odami savolga javob yozdi (savol xabariga «Javob berish» bilan)
@@ -223,7 +241,26 @@ async function onCallback(env, q) {
   if (!T.hi[sc]) return;
   await env.STORE.put('lang:' + q.from.id, sc);
   if (q.message.text === T.pick) await tg(env, 'deleteMessage', { chat_id: chat, message_id: q.message.message_id });
-  return greet(env, chat, q.from, sc);
+  // Pastdagi menyu tugmasi ham ilovani shu tilda ochsin (til qayta so'ralmaydi)
+  await tg(env, 'setChatMenuButton', { chat_id: chat, menu_button: { type: 'web_app', text: T.openL[sc], web_app: { url: `${env.APP_URL}?lang=${sc}` } } });
+  await greet(env, chat, q.from, sc);
+  return askPhone(env, chat, q.from, sc);
+}
+const phoneKb = (s) => ({ keyboard: [[{ text: T.phoneBtn[s], request_contact: true }]], resize_keyboard: true, one_time_keyboard: true, is_persistent: true });
+/** Raqam hali bo'lmasa, pastda «Raqamni yuborish» tugmasi chiqadi */
+async function askPhone(env, chat, from, sc) {
+  if (await hasPhone(env, from.id)) return;
+  const s = T.phoneAsk[sc] ? sc : 'lat';
+  return tg(env, 'sendMessage', { chat_id: chat, text: T.phoneAsk[s], reply_markup: phoneKb(s) });
+}
+async function onContact(env, m) {
+  const s = (await env.STORE.get('lang:' + m.from.id)) || (lang(m.from) === 'ru' ? 'ru' : 'lat');
+  const c = m.contact;
+  if (c.user_id !== m.from.id) return tg(env, 'sendMessage', { chat_id: m.chat.id, text: T.phoneOwn[s], reply_markup: phoneKb(s) });
+  const phone = '+' + String(c.phone_number || '').replace(/\D/g, '');
+  if (phone.length < 8) return tg(env, 'sendMessage', { chat_id: m.chat.id, text: T.phoneOwn[s], reply_markup: phoneKb(s) });
+  await savePhone(env, m.from, phone);
+  return tg(env, 'sendMessage', { chat_id: m.chat.id, text: T.phoneOk[s], reply_markup: { remove_keyboard: true } });
 }
 
 async function onPreCheckout(env, q) {

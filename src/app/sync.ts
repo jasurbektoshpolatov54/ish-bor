@@ -41,7 +41,7 @@ async function run(): Promise<boolean> {
   let r: Response;
   try { r = await fetch(url() + '/api/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); } catch { return false; }
   if (!r.ok) return false;
-  const j = await r.json().catch(() => null) as { me?: { username?: string }; users?: Partial<User>[]; listings?: Listing[] } | null;
+  const j = await r.json().catch(() => null) as { me?: { username?: string; phone?: string }; users?: Partial<User>[]; listings?: Listing[] } | null;
   if (!j || !Array.isArray(j.listings) || !Array.isArray(j.users)) return false;
   lastSent = sig;
   const t = now();
@@ -54,6 +54,8 @@ async function run(): Promise<boolean> {
   const me = db.users.find((x) => x.id === db.ownerId);
   let changed = before !== JSON.stringify([users, ls]);
   if (me && j.me && (j.me.username || undefined) !== me.username) { me.username = j.me.username || undefined; changed = true; }
+  // Raqam botda yuborilgan: ilovada yo'q bo'lsa olinadi
+  if (me && !me.phone && j.me?.phone && /^\+\d{8,15}$/.test(j.me.phone)) { me.phone = j.me.phone; changed = true; }
   if (changed) save();
   return changed;
 }

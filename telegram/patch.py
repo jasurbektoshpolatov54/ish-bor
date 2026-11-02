@@ -66,3 +66,7 @@ if os.environ.get('STARS_API'):
     edit('src/views/user.ts', view)
     edit('src/ui/ru-dict.ts', lambda s: s.replace("export const RU: Record<string, string> = {", "export const RU: Record<string, string> = {\n  'MB kursi': 'по курсу ЦБ', 'dollar kursi': 'по курсу доллара', 'Telegram Stars': 'Telegram Stars',", 1))
     edit('src/ui/cyr.ts', lambda s: s.replace("const BR = ['Payme',", "const BR = ['Telegram', 'Stars', 'Payme',", 1).replace("if (w === 'km') return 'км';", "if (w === 'km') return 'км';\n  if (w === 'MB') return 'МБ';", 1))
+
+# 5. Telefon raqami botning o'zida so'raladi: birinchi kirishda ilova raqam so'ramaydi
+#    (raqam umumiy bazadan keladi, src/app/sync.ts).
+edit('src/app/controller.ts', lambda s: s.replace("  db.users.push(u); db.ownerId = u.id; db.acting = u.id;\n  await askPhone(u);\n", "  db.users.push(u); db.ownerId = u.id; db.acting = u.id;\n", 1))

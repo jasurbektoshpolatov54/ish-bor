@@ -43,11 +43,24 @@ assert.deepEqual(calls.at(-1)[1].reply_markup.inline_keyboard[0].map((x) => x.ca
 await req('/tg', { callback_query: { id: 'cb1', from: { id: 7, first_name: 'Jasur' }, data: 'lang:lat', message: { message_id: 50, chat: { id: 7 }, text: 'Tilni tanlang · Тилни танланг · Выберите язык' } } }, H);
 assert.ok(calls.some((c) => c[0] === 'answerCallbackQuery'));
 assert.ok(calls.some((c) => c[0] === 'deleteMessage' && c[1].message_id === 50));
+// Menyu tugmasi shu tilda ochadi
+assert.ok(calls.some((c) => c[0] === 'setChatMenuButton' && c[1].chat_id === 7 && c[1].menu_button.web_app.url === env.APP_URL + '?lang=lat'));
+// Salomlashuvdan keyin raqam botning o'zida so'raladi (pastda «Raqamni yuborish» tugmasi)
 let g = calls.at(-1);
+assert.equal(g[0], 'sendMessage'); assert.match(g[1].text, /telefon raqamingizni/);
+assert.equal(g[1].reply_markup.keyboard[0][0].request_contact, true);
+g = calls.at(-2);
 assert.equal(g[0], 'sendPhoto'); assert.equal(g[1].photo, env.APP_URL + 'bot-salom.png');
 assert.match(g[1].caption, /Assalomu alaykum, Jasur!/);
 assert.equal(g[1].reply_markup.inline_keyboard[0][0].web_app.url, env.APP_URL + '?lang=lat');
-// keyingi /start — til eslab qolingan, darhol salomlashuv
+// Boshqa odamning kontakti qabul qilinmaydi
+await req('/tg', { message: { message_id: 3, chat: { id: 7 }, from: { id: 7 }, contact: { user_id: 99, phone_number: '998901112233' } } }, H);
+assert.match(calls.at(-1)[1].text, /o‘z raqamingizni/); assert.equal(kv.get('phone:7'), undefined);
+// O'z raqami: saqlanadi, tugma yo'qoladi
+await req('/tg', { message: { message_id: 4, chat: { id: 7 }, from: { id: 7 }, contact: { user_id: 7, phone_number: '998 90 111 22 33' } } }, H);
+assert.equal(kv.get('phone:7'), '+998901112233');
+assert.match(calls.at(-1)[1].text, /Raqamingiz qabul qilindi/); assert.equal(calls.at(-1)[1].reply_markup.remove_keyboard, true);
+// keyingi /start — til eslab qolingan, darhol salomlashuv; raqam bor, qayta so'ralmaydi
 await req('/tg', { message: { message_id: 2, chat: { id: 7 }, from: { id: 7, first_name: 'Jasur' }, text: '/start' } }, H);
 assert.equal(calls.at(-1)[0], 'sendPhoto');
 // tilni o'zgartirish
