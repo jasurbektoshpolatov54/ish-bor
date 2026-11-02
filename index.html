@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0b0b0e">
+<title>Ish bor</title>
+  <script type="module" crossorigin src="./assets/index-D6vWyGz2.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-jDKd4xnf.css">
+<!-- Ochilish oynasi: oq ekran o'rniga «Mehnat» nomi va rasm. Telegram skriptidan oldin, darhol chiqadi. -->
+<style>
+html{background:#0b0b10}
+#mh-sp{position:fixed;inset:0;z-index:2147483600;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:radial-gradient(90% 55% at 15% 8%,rgba(230,192,122,.30),transparent 62%),radial-gradient(90% 55% at 88% 6%,rgba(110,80,220,.34),transparent 62%),radial-gradient(70% 40% at 50% 100%,rgba(63,207,142,.14),transparent 70%),#0b0b10;transition:opacity .45s ease,visibility .45s;-webkit-user-select:none;user-select:none}
+#mh-sp.out{opacity:0;visibility:hidden}
+#mh-sp svg{width:min(78vw,320px);height:auto}
+#mh-sp .t1{animation:mhL .7s cubic-bezier(.2,.8,.2,1) both}
+#mh-sp .t2{animation:mhR .7s cubic-bezier(.2,.8,.2,1) both}
+#mh-sp .ok{transform-box:fill-box;transform-origin:center;animation:mhPop .5s .55s cubic-bezier(.3,1.6,.5,1) both}
+#mh-sp .arc{animation:mhFlow 1.4s linear infinite}
+#mh-sp .ring{transform-box:fill-box;transform-origin:center;animation:mhPulse 2.4s ease-in-out infinite}
+#mh-sp h1{margin:0;font:800 clamp(40px,12vw,56px)/1.1 Inter,system-ui,-apple-system,sans-serif;letter-spacing:-1.5px;background:linear-gradient(100deg,#D9A94F 0%,#F6DFA6 30%,#fff6dc 45%,#F6DFA6 60%,#D9A94F 100%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:mhUp .7s .2s both,mhShine 2.6s 1s ease-in-out infinite}
+#mh-sp i{display:block;width:120px;height:3px;margin-top:22px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;animation:mhUp .7s .35s both}
+#mh-sp i:after{content:"";display:block;width:40%;height:100%;border-radius:3px;background:linear-gradient(90deg,transparent,#E6C07A,transparent);animation:mhBar 1.1s ease-in-out infinite}
+@keyframes mhL{from{opacity:0;transform:translate(10px,70px) scale(.8)}to{opacity:1}}
+@keyframes mhR{from{opacity:0;transform:translate(194px,70px) scale(.8)}to{opacity:1}}
+@keyframes mhPop{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:scale(1)}}
+@keyframes mhFlow{to{stroke-dashoffset:-24}}
+@keyframes mhPulse{50%{opacity:.35;transform:scale(1.04)}}
+@keyframes mhUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes mhShine{0%,100%{background-position:100% 0}50%{background-position:0 0}}
+@keyframes mhBar{from{transform:translateX(-100%)}to{transform:translateX(260%)}}
+@media (prefers-reduced-motion:reduce){#mh-sp *{animation:none!important}}
+</style>
+<script>
+(function () {
+  var d = document.createElement('div'); d.id = 'mh-sp'; d.setAttribute('aria-hidden', 'true');
+  d.innerHTML = '<svg viewBox="0 0 300 170" xmlns="http://www.w3.org/2000/svg">'
+    + '<defs><linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F6DFA6"/><stop offset="1" stop-color="#D9A94F"/></linearGradient>'
+    + '<linearGradient id="sm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b9ffd9"/><stop offset="1" stop-color="#3fcf8e"/></linearGradient></defs>'
+    + '<g class="ring" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="1.2"><circle cx="150" cy="85" r="78"/><circle cx="150" cy="85" r="56"/></g>'
+    + '<path class="arc" d="M78 92 C110 40 190 40 222 92" fill="none" stroke="#E6C07A" stroke-width="2.4" stroke-dasharray="5 7" stroke-linecap="round"/>'
+    + '<g class="t1" transform="translate(40 70)"><rect width="76" height="76" rx="22" fill="url(#sg)"/><rect x="20" y="30" width="36" height="26" rx="5" fill="none" stroke="#2a1d05" stroke-width="3.4"/><path d="M30 30v-5a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v5M20 41h36" fill="none" stroke="#2a1d05" stroke-width="3.4" stroke-linecap="round"/></g>'
+    + '<g class="t2" transform="translate(184 70)"><rect width="76" height="76" rx="22" fill="url(#sm)"/><circle cx="38" cy="30" r="9" fill="none" stroke="#0c3a25" stroke-width="3.4"/><path d="M22 58c2-10 9-15 16-15s14 5 16 15" fill="none" stroke="#0c3a25" stroke-width="3.4" stroke-linecap="round"/></g>'
+    + '<g transform="translate(150 50)"><g class="ok"><circle r="21" fill="#141420" stroke="#E6C07A" stroke-width="2.4"/><path d="M-9 1l6 6 12-13" fill="none" stroke="#E6C07A" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></g></g>'
+    + '<g fill="#E6C07A" opacity=".7"><circle cx="38" cy="38" r="2.5"/><circle cx="262" cy="34" r="2"/><circle cx="272" cy="150" r="2.5"/><circle cx="26" cy="150" r="2"/></g>'
+    + '</svg><h1>Mehnat</h1><i></i>';
+  document.documentElement.appendChild(d);
+  var t0 = Date.now();
+  // Ilova chizilgach (yoki 8 soniyadan keyin), kamida 0,9 soniya ko'rsatib, sekin yo'qoladi
+  function done() {
+    var app = document.getElementById('app');
+    if (!(app && app.children.length) && Date.now() - t0 < 8000) return setTimeout(done, 80);
+    setTimeout(function () {
+      d.classList.add('out');
+      setTimeout(function () { d.remove(); }, 500);
+      try {
+        var w = window.Telegram && window.Telegram.WebApp, c = getComputedStyle(document.body).backgroundColor.match(/\d+/g);
+        if (w && c) { var hx = '#' + c.slice(0, 3).map(function (n) { return ('0' + (+n).toString(16)).slice(-2); }).join(''); w.setHeaderColor(hx); w.setBackgroundColor(hx); }
+      } catch (e) {}
+    }, Math.max(0, 900 - (Date.now() - t0)));
+  }
+  setTimeout(done, 80);
+})();
+</script>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+.tgm{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,.55);font:15px/1.4 Inter,system-ui,sans-serif}
+.tgm-b{width:100%;max-width:340px;border-radius:16px;padding:18px;background:var(--tg-theme-secondary-bg-color,#1c1c22);color:var(--tg-theme-text-color,#f2f2f5);box-shadow:0 10px 40px rgba(0,0,0,.4)}
+.tgm-m{white-space:pre-wrap;margin:0 0 14px;max-height:50vh;overflow:auto}
+.tgm-i{box-sizing:border-box;width:100%;padding:12px;border-radius:10px;border:1px solid var(--tg-theme-hint-color,#555);background:var(--tg-theme-bg-color,#0b0b0e);color:inherit;font:inherit;margin-bottom:14px;outline:none}
+.tgm-r{display:flex;gap:10px;justify-content:flex-end}
+.tgm-r button{flex:1;padding:12px;border:0;border-radius:10px;font:600 15px Inter,system-ui,sans-serif;cursor:pointer}
+.tgm-ok{background:var(--tg-theme-button-color,#E6C07A);color:var(--tg-theme-button-text-color,#111)}
+.tgm-x{display:block;width:100%;padding:13px;border:0;border-radius:10px;font:600 15px Inter,system-ui,sans-serif;margin-bottom:10px;cursor:pointer}
+.tgm-l{text-align:left;font-size:16px}
+.tgm-t{text-align:center;font-weight:600}
+.tgm-no{background:transparent;color:var(--tg-theme-hint-color,#999)}
+</style>
+<script>
+(function () {
+  var w = window.Telegram && window.Telegram.WebApp;
+  var inTg = !!(w && w.initData);
+  // Telegram ichida brauzer oynachalari (prompt/confirm/alert) ishonchli emas,
+  // shuning uchun ilova ichida o'z oynachamiz chiqadi. Telegramdan tashqarida o'zgarish yo'q.
+  // extra: [{text, onClick(done)}] — qo'shimcha tugmalar (OK dan oldin, to'liq kenglikda)
+  function box(msg, withInput, value, withCancel, extra, inputType) {
+    return new Promise(function (res) {
+      var o = document.createElement('div'); o.className = 'tgm';
+      var b = document.createElement('div'); b.className = 'tgm-b'; o.appendChild(b);
+      var m = document.createElement('p'); m.className = 'tgm-m'; m.textContent = msg; b.appendChild(m);
+      var i = null;
+      function done(v) { o.remove(); res(v); }
+      (extra || []).forEach(function (x) {
+        var e = document.createElement('button'); e.className = 'tgm-ok tgm-x'; e.textContent = x.text;
+        e.onclick = function () { x.onClick(done); }; b.appendChild(e);
+      });
+      if (withInput) { i = document.createElement('input'); i.className = 'tgm-i'; i.value = value || ''; if (inputType) i.type = inputType; b.appendChild(i); }
+      var r = document.createElement('div'); r.className = 'tgm-r'; b.appendChild(r);
+      if (withCancel) { var n = document.createElement('button'); n.className = 'tgm-no'; n.textContent = '✕'; n.onclick = function () { done(withInput ? null : false); }; r.appendChild(n); }
+      var k = document.createElement('button'); k.className = 'tgm-ok'; k.textContent = 'OK'; k.onclick = function () { done(withInput ? i.value : true); }; r.appendChild(k);
+      if (i) i.onkeydown = function (e) { if (e.key === 'Enter') k.click(); };
+      document.body.appendChild(o);
+      if (i) setTimeout(function () { i.focus(); }, 50);
+    });
+  }
+  function short(msg) { return String(msg).length <= 250; }
+
+  // Birinchi qadam: til tanlash
+  function chooseLang() {
+    return new Promise(function (res) {
+      var o = document.createElement('div'); o.className = 'tgm';
+      var b = document.createElement('div'); b.className = 'tgm-b'; o.appendChild(b);
+      var m = document.createElement('p'); m.className = 'tgm-m tgm-t'; m.textContent = 'Tilni tanlang\nТилни танланг\nВыберите язык'; b.appendChild(m);
+      [['lat', '🇺🇿 O‘zbekcha (lotin)'], ['cyr', '🇺🇿 Ўзбекча (кирилл)'], ['ru', '🇷🇺 Русский язык']].forEach(function (l) {
+        var e = document.createElement('button'); e.className = 'tgm-ok tgm-x tgm-l'; e.textContent = l[1];
+        e.onclick = function () { o.remove(); res(l[0]); }; b.appendChild(e);
+      });
+      document.body.appendChild(o);
+    });
+  }
+  function lang(msg) {
+    if (/[а-яё]/i.test(msg)) return /[ўқғҳ]/i.test(msg) ? 'cyr' : 'ru';
+    return api.script || 'lat';
+  }
+  var L = {
+    name: { lat: 'Ismingiz', cyr: 'Исмингиз', ru: 'Ваше имя' },
+    send: { lat: '📱 Raqamni yuborish', cyr: '📱 Рақамни юбориш', ru: '📱 Отправить номер' },
+    phone: { lat: 'Telefon raqamingiz (+998…)', cyr: 'Телефон рақамингиз (+998…)', ru: 'Ваш номер телефона (+998…)' },
+  };
+  // Telegram'dagi raqamni so'rash (Telegram o'zining "Raqamni yuborish" oynasini ko'rsatadi)
+  function contact() {
+    return new Promise(function (res) {
+      if (!w.requestContact || !w.isVersionAtLeast || !w.isVersionAtLeast('6.9')) return res(null);
+      try {
+        w.requestContact(function (ok, r) {
+          var p = ok && r && r.responseUnsafe && r.responseUnsafe.contact && r.responseUnsafe.contact.phone_number;
+          res(p ? '+' + String(p).replace(/\D/g, '') : null);
+        });
+      } catch (e) { res(null); }
+    });
+  }
+  function tgName() {
+    var u = w.initDataUnsafe && w.initDataUnsafe.user;
+    return u ? [u.first_name, u.last_name].filter(Boolean).join(' ').trim() : '';
+  }
+  function prompt(msg, value) {
+    // Birinchi kirish (yoki tozalashdan keyin): avval til (botdan kelgan bo'lsa so'ralmaydi), keyin ism Telegramdan olinadi (so'ralmaydi)
+    if (!value && (msg === L.name.lat || msg === L.name.cyr || msg === L.name.ru)) {
+      // Botdagi «Ochish» tugmasi tanlangan tilni beradi (?lang=lat|cyr|ru): unda til qayta so'ralmaydi
+      var ql = new URLSearchParams(location.search).get('lang');
+      var pickLang = /^(lat|cyr|ru)$/.test(ql || '') ? Promise.resolve(ql) : chooseLang();
+      return pickLang.then(function (s) {
+        api.script = s;
+        return tgName() || box(L.name[s], true, '', false);
+      });
+    }
+    // Telefon raqami (odatda botda olingan bo'ladi). Kerak bo'lsa: qo'lda yoki tugma orqali, Telegram oynachasi o'zi chiqmaydi
+    if (/^\+?998/.test(value || '')) {
+      var s = lang(msg);
+      if (s !== 'lat' && !/[а-яё]/i.test(msg)) msg = L.phone[s]; // birinchi kirishda ilova hali lotinda so'raydi
+      var manual = function () {
+        return box(msg, true, value, true, [{ text: L.send[s], onClick: function (done) { contact().then(function (p) { if (p) done(p); }); } }], 'tel');
+      };
+      return manual();
+    }
+    return box(msg, true, value, true);
+  }
+  // Umumiy baza (bot serveri): manzil yig'ishda yoziladi, bo'sh bo'lsa ilova faqat telefonda ishlaydi.
+  var SERVER_API = 'https://mehnat-bot.birga-uz.workers.dev';
+  var api = window.__tg = inTg ? {
+    script: null,
+    server: /^https:/.test(SERVER_API) ? SERVER_API : '',
+    prompt: prompt,
+    confirm: function (msg) {
+      if (!short(msg)) return box(msg, false, '', true);
+      return new Promise(function (res) { try { w.showConfirm(msg, function (ok) { res(!!ok); }); } catch (e) { box(msg, false, '', true).then(res); } });
+    },
+    alert: function (msg) {
+      if (!short(msg)) return box(msg, false, '', false);
+      return new Promise(function (res) { try { w.showAlert(msg, function () { res(); }); } catch (e) { box(msg, false, '', false).then(res); } });
+    },
+  } : {
+    script: null,
+    prompt: function (msg, value) { return Promise.resolve(window.prompt(msg, value)); },
+    confirm: function (msg) { return Promise.resolve(window.confirm(msg)); },
+    alert: function (msg) { window.alert(msg); return Promise.resolve(); },
+  };
+  // Telegram Stars: server manzili yig'ishda yoziladi (bo'sh bo'lsa, Stars yo'q).
+  var STARS_API = '';
+  if (inTg && /^https:/.test(STARS_API)) {
+    var narx = null;
+    var loadNarx = function () {
+      return fetch(STARS_API + '/narx').then(function (r) { return r.json(); }).then(function (j) { narx = j; return j; }).catch(function () { return narx; });
+    };
+    loadNarx();
+    var soum = function (n) { var p = n.toFixed(2).split('.'); return p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ',' + p[1]; };
+    api.starsLabel = function () { return '⭐ ' + (narx ? narx.stars : '…'); };
+    api.starsSoum = function () { return narx ? soum(narx.soum) + ' so‘m · ' + (narx.rateSrc === 'cbu' ? 'MB kursi' : 'dollar kursi') : undefined; };
+    // To'lov: server hisob ochadi, Telegram o'z oynasida to'lov oladi. Natija: paid | cancelled | failed | pending
+    api.stars = function (order) {
+      return fetch(STARS_API + '/invoice', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: w.initData, order: order }) })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j.link) throw new Error(j.error || 'invoice');
+          if (j.stars && narx) { narx.stars = j.stars; narx.soum = j.soum; }
+          return new Promise(function (res) { w.openInvoice(j.link, function (st) { res(st); }); });
+        })
+        .catch(function () { return 'failed'; });
+    };
+  }
+  if (!inTg) return;
+  // Ochilish oynasi bilan bir xil to'q rang: Telegram oq fon ko'rsatmasin
+  try { w.setHeaderColor('#0b0b10'); w.setBackgroundColor('#0b0b10'); } catch (e) {}
+  w.ready();
+  w.expand();
+  try { w.disableVerticalSwipes(); } catch (e) {}
+})();
+</script>
+</head>
+<body>
+<div id="app" class="app"></div>
+</body>
+</html>
