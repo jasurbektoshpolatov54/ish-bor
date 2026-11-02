@@ -134,7 +134,10 @@
   function prompt(msg, value) {
     // Birinchi kirish (yoki tozalashdan keyin): avval til, keyin ilova haqida salomlashuv, keyin ism Telegramdan olinadi (so'ralmaydi)
     if (!value && (msg === L.name.lat || msg === L.name.cyr || msg === L.name.ru)) {
-      return chooseLang().then(function (s) {
+      // Botdagi «Ochish» tugmasi tanlangan tilni beradi (?lang=lat|cyr|ru): unda til qayta so'ralmaydi
+      var ql = new URLSearchParams(location.search).get('lang');
+      var pickLang = /^(lat|cyr|ru)$/.test(ql || '') ? Promise.resolve(ql) : chooseLang();
+      return pickLang.then(function (s) {
         api.script = s;
         return welcome(s).then(function () { return tgName() || box(L.name[s], true, '', false); });
       });

@@ -89,6 +89,16 @@ const T = {
     ru: 'Честный труд, без посредников. Находите друг друга напрямую.\n\n👇 Нажмите кнопку, чтобы открыть приложение.',
   },
   open: { uz: 'Ochish', ru: 'Открыть' },
+  // /start: avval til, keyin rasmli salomlashuv (lat — lotin, cyr — kirill, ru — rus)
+  pick: 'Tilni tanlang · Тилни танланг · Выберите язык',
+  langs: [['lat', '🇺🇿 O‘zbekcha'], ['cyr', '🇺🇿 Ўзбекча'], ['ru', '🇷🇺 Русский']],
+  hi: {
+    lat: (n) => `Assalomu alaykum${n ? ', ' + n : ''}! 👋\n\n<b>Mehnat</b> — halol mehnat, vositachisiz. Ish va ishchi bir-birini to‘g‘ridan-to‘g‘ri topadi.\n\n💼 <b>Ishchi kerakmi?</b> E’lon joylang — yaqin atrofdagi mos ishchilar darhol chiqadi.\n🙋 <b>Ish qidiryapsizmi?</b> Qila oladigan ishingizni yozing — sizga mos ishlar o‘zi ko‘rsatiladi.\n🤝 <b>Bepul va to‘g‘ridan-to‘g‘ri.</b> Hech kimga oldindan pul to‘lamang.\n\n👇 Boshlash uchun «Ochish» tugmasini bosing.`,
+    cyr: (n) => `Ассалому алайкум${n ? ', ' + n : ''}! 👋\n\n<b>Mehnat</b> — ҳалол меҳнат, воситачисиз. Иш ва ишчи бир-бирини тўғридан-тўғри топади.\n\n💼 <b>Ишчи керакми?</b> Эълон жойланг — яқин атрофдаги мос ишчилар дарҳол чиқади.\n🙋 <b>Иш қидиряпсизми?</b> Қила оладиган ишингизни ёзинг — сизга мос ишлар ўзи кўрсатилади.\n🤝 <b>Бепул ва тўғридан-тўғри.</b> Ҳеч кимга олдиндан пул тўламанг.\n\n👇 Бошлаш учун «Очиш» тугмасини босинг.`,
+    ru: (n) => `Здравствуйте${n ? ', ' + n : ''}! 👋\n\n<b>Mehnat</b> — честный труд, без посредников. Работа и работники находят друг друга напрямую.\n\n💼 <b>Нужны работники?</b> Разместите объявление — сразу увидите подходящих рядом.\n🙋 <b>Ищете работу?</b> Напишите, что умеете, — подходящие вакансии появятся сами.\n🤝 <b>Бесплатно и напрямую.</b> Никому не платите заранее.\n\n👇 Чтобы начать, нажмите «Открыть».`,
+  },
+  openL: { lat: 'Ochish', cyr: 'Очиш', ru: 'Открыть' },
+  langBtn: { lat: '🌐 Tilni o‘zgartirish', cyr: '🌐 Тилни ўзгартириш', ru: '🌐 Сменить язык' },
   ask: { uz: 'Savolingizni shu yerga bitta xabarda yozing. Javob shu chatga keladi.', ru: 'Напишите вопрос сюда одним сообщением. Ответ придёт в этот чат.' },
   asked: { uz: '✅ Savolingiz yuborildi. Javob shu chatga keladi.', ru: '✅ Вопрос отправлен. Ответ придёт в этот чат.' },
   answer: { uz: '💬 Javob:', ru: '💬 Ответ:' },
@@ -127,9 +137,9 @@ async function onMessage(env, m) {
   const text = (m.text || '').trim();
   const [cmd, ...args] = text.split(/\s+/);
   const c = cmd.replace(/@\w+$/, '').toLowerCase();
-  const openBtn = { inline_keyboard: [[{ text: T.open[L], web_app: { url: env.APP_URL } }]] };
   if (c === '/start') {
-    return tg(env, 'sendMessage', { chat_id: m.chat.id, text: T.start[L], reply_markup: openBtn });
+    const sc = await env.STORE.get('lang:' + m.from.id);
+    return sc ? greet(env, m.chat.id, m.from, sc) : askLang(env, m.chat.id);
   }
   if (c === '/savol') return tg(env, 'sendMessage', { chat_id: m.chat.id, text: T.ask[L] });
   // Nazorat odami savolga javob yozdi (savol xabariga «Javob berish» bilan)
@@ -189,6 +199,33 @@ async function onMessage(env, m) {
   }
 }
 
+const esc = (s) => String(s || '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+function askLang(env, chat) {
+  return tg(env, 'sendMessage', { chat_id: chat, text: T.pick, reply_markup: { inline_keyboard: [T.langs.map(([k, t]) => ({ text: t, callback_data: 'lang:' + k }))] } });
+}
+/** Rasmli salomlashuv va «Ochish» tugmasi (ilova shu tilda ochiladi) */
+async function greet(env, chat, from, sc) {
+  const s = T.hi[sc] ? sc : 'lat';
+  const caption = T.hi[s](esc(from && from.first_name));
+  const url = `${env.APP_URL}?lang=${s}`;
+  const reply_markup = { inline_keyboard: [[{ text: T.openL[s], web_app: { url } }], [{ text: T.langBtn[s], callback_data: 'lang?' }]] };
+  const r = await tg(env, 'sendPhoto', { chat_id: chat, photo: env.APP_URL + 'bot-salom.png', caption, parse_mode: 'HTML', reply_markup });
+  if (!r.ok) return tg(env, 'sendMessage', { chat_id: chat, text: caption, parse_mode: 'HTML', reply_markup });
+  return r;
+}
+async function onCallback(env, q) {
+  const d = String(q.data || '');
+  await tg(env, 'answerCallbackQuery', { callback_query_id: q.id });
+  const chat = q.message && q.message.chat.id;
+  if (!chat) return;
+  if (d === 'lang?') return askLang(env, chat);
+  const sc = d.startsWith('lang:') ? d.slice(5) : '';
+  if (!T.hi[sc]) return;
+  await env.STORE.put('lang:' + q.from.id, sc);
+  if (q.message.text === T.pick) await tg(env, 'deleteMessage', { chat_id: chat, message_id: q.message.message_id });
+  return greet(env, chat, q.from, sc);
+}
+
 async function onPreCheckout(env, q) {
   if (!tolovOn(env)) return tg(env, 'answerPreCheckoutQuery', { pre_checkout_query_id: q.id, ok: false, error_message: lang(q.from) === 'ru' ? 'Оплата сейчас недоступна.' : 'To‘lov hozir yo‘q.' });
   const inv = await env.STORE.get('inv:' + q.invoice_payload, 'json');
@@ -214,6 +251,7 @@ export default {
       const u = await req.json();
       try {
         if (u.pre_checkout_query) await onPreCheckout(env, u.pre_checkout_query);
+        else if (u.callback_query) await onCallback(env, u.callback_query);
         else if (u.message) await onMessage(env, u.message);
       } catch (e) { console.log('xato', e && e.stack); }
       return new Response('ok');
