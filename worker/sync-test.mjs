@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import bot from './bot.js';
-import { clean } from './match.js';
+import { clean, savePhone, hasPhone } from './match.js';
 
 // D1 ga o‘xshash kichik qobiq
 const sql = new DatabaseSync(':memory:');
@@ -70,6 +70,19 @@ assert.equal(r.body.users[0].phone, '+998907778899');
 await syncAs({ id: 200, first_name: 'Vali' }, { me: { name: 'Vali' }, listings: [] });
 r = await syncAs({ id: 100, first_name: 'Ali', username: 'ali' }, { me: { name: 'Ali' }, listings: [ishchi] });
 assert.equal(r.body.listings.filter((l) => l.kind === 'bor').length, 0);
+
+// 7) Raqam botda yuborilgan (ilovada yo‘q): almashishda ilovaga qaytariladi
+const kv = new Map();
+env.STORE = { async get(k) { return kv.get(k) ?? null; }, async put(k, v) { kv.set(k, v); } };
+assert.equal(await hasPhone(env, 300), false);
+await savePhone(env, { id: 300, first_name: 'Soli' }, '+998935554433');
+assert.equal(await hasPhone(env, 300), true);
+r = await syncAs({ id: 300, first_name: 'Soli' }, { me: { name: 'Soli' }, listings: [] });
+assert.equal(r.body.me.phone, '+998935554433');
+// Ilovada raqam bo‘lsa, qaytarilmaydi; ilovada kiritilgan raqam ham «bor» hisoblanadi
+r = await syncAs({ id: 100, first_name: 'Ali', username: 'ali' }, { me: { name: 'Ali', phone: '+998901112233' }, listings: [ishchi] });
+assert.equal(r.body.me.phone, undefined);
+kv.clear(); assert.equal(await hasPhone(env, 100), true);
 
 // Noto‘g‘ri e’lon qabul qilinmaydi
 assert.equal(clean({ id: 'x', kind: 'bor', status: 'faol' }), null);
