@@ -36,8 +36,25 @@ assert.match(await (await req('/')).text(), /ishlayapti/);
 for (const text of ['/paysupport', '/terms']) { const k = calls.length; await req('/tg', { message: { message_id: 1, chat: { id: 7 }, from: { id: 7 }, text } }, H); assert.equal(calls.length, k, text + ' jim bo‘lishi kerak'); }
 await req('/tg', { pre_checkout_query: { id: 'pq0', from: { id: 7 }, currency: 'XTR', total_amount: 21, invoice_payload: 'x' } }, H);
 assert.equal(calls.at(-1)[1].ok, false);
-await req('/tg', { message: { message_id: 1, chat: { id: 7 }, from: { id: 7 }, text: '/start' } }, H);
-assert.equal(calls.at(-1)[1].reply_markup.inline_keyboard[0][0].web_app.url, env.APP_URL);
+// /start: avval til so'raladi, tanlangach rasmli salomlashuv (ilova shu tilda ochiladi)
+await req('/tg', { message: { message_id: 1, chat: { id: 7 }, from: { id: 7, first_name: 'Jasur', language_code: 'ru' }, text: '/start' } }, H);
+assert.match(calls.at(-1)[1].text, /Tilni tanlang/);
+assert.deepEqual(calls.at(-1)[1].reply_markup.inline_keyboard[0].map((x) => x.callback_data), ['lang:lat', 'lang:cyr', 'lang:ru']);
+await req('/tg', { callback_query: { id: 'cb1', from: { id: 7, first_name: 'Jasur' }, data: 'lang:lat', message: { message_id: 50, chat: { id: 7 }, text: 'Tilni tanlang · Тилни танланг · Выберите язык' } } }, H);
+assert.ok(calls.some((c) => c[0] === 'answerCallbackQuery'));
+assert.ok(calls.some((c) => c[0] === 'deleteMessage' && c[1].message_id === 50));
+let g = calls.at(-1);
+assert.equal(g[0], 'sendPhoto'); assert.equal(g[1].photo, env.APP_URL + 'bot-salom.png');
+assert.match(g[1].caption, /Assalomu alaykum, Jasur!/);
+assert.equal(g[1].reply_markup.inline_keyboard[0][0].web_app.url, env.APP_URL + '?lang=lat');
+// keyingi /start — til eslab qolingan, darhol salomlashuv
+await req('/tg', { message: { message_id: 2, chat: { id: 7 }, from: { id: 7, first_name: 'Jasur' }, text: '/start' } }, H);
+assert.equal(calls.at(-1)[0], 'sendPhoto');
+// tilni o'zgartirish
+await req('/tg', { callback_query: { id: 'cb2', from: { id: 7 }, data: 'lang?', message: { message_id: 51, chat: { id: 7 } } } }, H);
+assert.match(calls.at(-1)[1].text, /Tilni tanlang/);
+await req('/tg', { callback_query: { id: 'cb3', from: { id: 7, first_name: '<b>' }, data: 'lang:ru', message: { message_id: 52, chat: { id: 7 }, text: 'Tilni tanlang · Тилни танланг · Выберите язык' } } }, H);
+g = calls.at(-1); assert.match(g[1].caption, /Здравствуйте, &lt;b&gt;!/); assert.equal(g[1].reply_markup.inline_keyboard[0][0].text, 'Открыть');
 calls.length = 0;
 // Quyidagilar to'lov yoqilgan holat uchun (TOLOV=on)
 env.TOLOV = 'on';
@@ -77,7 +94,7 @@ assert.match(calls.at(-1)[1].text, /Bot hisobida: 21 ⭐[\s\S]*IB-2026-000001/);
 await req('/tg', { message: { message_id: 5, chat: { id: 7 }, from: { id: 7 }, text: '/qaytar 1' } }, H);
 assert.ok(calls.some((c) => c[0] === 'refundStarPayment' && c[1].telegram_payment_charge_id === 'ch1'));
 await req('/tg', { message: { message_id: 6, chat: { id: 7 }, from: { id: 7 }, text: '/start' } }, H);
-assert.equal(calls.at(-1)[1].reply_markup.inline_keyboard[0][0].web_app.url, env.APP_URL);
+assert.equal(calls.at(-1)[1].reply_markup.inline_keyboard[0][0].web_app.url, env.APP_URL + '?lang=ru');
 // /savol va savol-javob (admin — 7)
 await req('/tg', { message: { message_id: 21, chat: { id: 9, type: 'private' }, from: { id: 9 }, text: '/savol' } }, H);
 assert.match(calls.at(-1)[1].text, /Savolingizni/);

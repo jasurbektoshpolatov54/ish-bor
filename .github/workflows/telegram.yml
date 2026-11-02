@@ -104,7 +104,7 @@ jobs:
           if [ -z "$OK" ]; then echo "::error::$URL javob bermadi"; exit 1; fi
           if [ "$TOLOV" = on ]; then curl -fsS "$URL/narx" | jq -c . | tee -a "$GITHUB_STEP_SUMMARY"; fi
           curl -fsS "https://api.telegram.org/bot$TOKEN/setWebhook" -H 'Content-Type: application/json' \
-            -d "$(jq -nc --arg u "$URL/tg" --arg s "$WH" '{url:$u, secret_token:$s, allowed_updates:["message","pre_checkout_query"]}')" | jq -c .
+            -d "$(jq -nc --arg u "$URL/tg" --arg s "$WH" '{url:$u, secret_token:$s, allowed_updates:["message","pre_checkout_query","callback_query"]}')" | jq -c .
           echo "Stars serveri: $URL" >> "$GITHUB_STEP_SUMMARY"
           # Ilovaga Stars faqat to'lov yoqiq bo'lsa ulanadi.
           if [ "$TOLOV" = on ]; then echo "api=$URL" >> "$GITHUB_OUTPUT"; else echo "To‘lov o‘chiq: ilovada Stars yo‘q" >> "$GITHUB_STEP_SUMMARY"; fi
@@ -182,5 +182,6 @@ jobs:
           }
           desc $'Halol mehnat, vositachisiz. Bir-biringizni to‘g‘ridan-to‘g‘ri toping.\n\n👇 Ilovani ochish uchun pastdagi «Ochish» tugmasini bosing.' \
                'Halol mehnat, vositachisiz. Ilovani pastdagi «Ochish» tugmasi bilan oching.' ''
-          desc $'Честный труд, без посредников. Находите друг друга напрямую.\n\n👇 Чтобы открыть приложение, нажмите кнопку «Ochish» внизу.' \
-               'Честный труд, без посредников. Откройте приложение кнопкой «Ochish» внизу.' 'ru'
+          # Ko'pchilikning Telegrami ruscha, lekin o'zbek tilida o'qiydi: ruscha Telegramda ham avval o'zbekcha.
+          desc $'Halol mehnat, vositachisiz. Bir-biringizni to‘g‘ridan-to‘g‘ri toping.\nЧестный труд, без посредников.\n\n👇 «Начать / Boshlash» tugmasini bosing.' \
+               'Halol mehnat, vositachisiz. · Честный труд, без посредников.' 'ru'
