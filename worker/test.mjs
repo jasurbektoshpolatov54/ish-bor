@@ -16,7 +16,7 @@ globalThis.fetch = async (u, o) => {
   if (String(u).includes('cbu.uz')) { if (globalThis.cbuDown) throw new Error('522'); return { ok: true, json: async () => [{ Ccy: 'USD', Rate: '12345.67', Date: '31.10.2026' }] }; }
   if (String(u).includes('currency-api')) return { ok: true, json: async () => ({ date: '2026-10-31', usd: { uzs: 12600.123 } }) };
   const m = String(u).split('/').pop(); const b = JSON.parse(o.body); calls.push([m, b]);
-  return { json: async () => ({ ok: true, result: m === 'createInvoiceLink' ? 'https://t.me/$inv' : m === 'getMyStarBalance' ? { amount: 21 } : true }) };
+  return { json: async () => ({ ok: true, result: m === 'createInvoiceLink' ? 'https://t.me/$inv' : m === 'getMyStarBalance' ? { amount: 21 } : m === 'sendMessage' ? { message_id: 1000 + calls.length } : true }) };
 };
 
 function initData(user, t = Math.floor(Date.now() / 1000)) {
@@ -78,6 +78,20 @@ await req('/tg', { message: { message_id: 5, chat: { id: 7 }, from: { id: 7 }, t
 assert.ok(calls.some((c) => c[0] === 'refundStarPayment' && c[1].telegram_payment_charge_id === 'ch1'));
 await req('/tg', { message: { message_id: 6, chat: { id: 7 }, from: { id: 7 }, text: '/start' } }, H);
 assert.equal(calls.at(-1)[1].reply_markup.inline_keyboard[0][0].web_app.url, env.APP_URL);
+// /savol va savol-javob (admin — 7)
+await req('/tg', { message: { message_id: 21, chat: { id: 9, type: 'private' }, from: { id: 9 }, text: '/savol' } }, H);
+assert.match(calls.at(-1)[1].text, /Savolingizni/);
+await req('/tg', { message: { message_id: 22, chat: { id: 9, type: 'private' }, from: { id: 9, first_name: 'Ali', username: 'ali' }, text: 'E’lonni qanday o‘chiraman?' } }, H);
+const q = calls.findLast((c) => c[1].chat_id === 7);
+assert.match(q[1].text, /Savol — Ali @ali \(id 9\)[\s\S]*qanday o‘chiraman/);
+assert.match(calls.at(-1)[1].text, /Savolingiz yuborildi/); assert.equal(calls.at(-1)[1].chat_id, 9);
+const qid = 1000 + calls.indexOf(q) + 1;
+await req('/tg', { message: { message_id: 23, chat: { id: 7, type: 'private' }, from: { id: 7 }, text: 'Profil → e’lon → O‘chirish', reply_to_message: { message_id: qid } } }, H);
+const ans = calls.findLast((c) => c[1].chat_id === 9);
+assert.match(ans[1].text, /Javob:\nProfil/);
+assert.match(calls.at(-1)[1].text, /Javob yuborildi/);
+// admin oddiy xabar yozsa savol bo'lib ketmaydi
+const k3 = calls.length; await req('/tg', { message: { message_id: 24, chat: { id: 7, type: 'private' }, from: { id: 7 }, text: 'salom' } }, H); assert.equal(calls.length, k3);
 // cbu.uz ochilmasa: ochiq kurs manbasi
 kv.delete('rate'); globalThis.cbuDown = true;
 const n2 = await (await req('/narx')).json();

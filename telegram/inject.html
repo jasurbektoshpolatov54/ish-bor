@@ -11,6 +11,17 @@
 .tgm-l{text-align:left;font-size:16px}
 .tgm-t{text-align:center;font-weight:600}
 .tgm-no{background:transparent;color:var(--tg-theme-hint-color,#999)}
+.tgw{position:fixed;inset:0;z-index:2147483647;overflow:auto;display:flex;flex-direction:column;align-items:center;padding:28px 22px 22px;box-sizing:border-box;color:#f4f1ea;font:15px/1.45 Inter,system-ui,sans-serif;background:radial-gradient(120% 60% at 0% 0%,rgba(230,192,122,.32),transparent 60%),radial-gradient(120% 60% at 100% 0%,rgba(110,80,220,.35),transparent 60%),#0b0b10;animation:tgwIn .35s ease}
+@keyframes tgwIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.tgw svg{width:100%;max-width:300px;height:auto;margin:6px 0 10px}
+.tgw h1{margin:0;font-size:24px;line-height:1.2;letter-spacing:-.5px;text-align:center}
+.tgw .sub{margin:6px 0 18px;color:#b9b4c8;text-align:center;font-size:14px}
+.tgw .pt{display:flex;gap:12px;align-items:flex-start;width:100%;max-width:360px;box-sizing:border-box;padding:12px 14px;margin-bottom:10px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
+.tgw .pt i{flex:none;width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:19px;background:rgba(230,192,122,.16)}
+.tgw .pt b{display:block;font-size:15px;margin-bottom:2px}
+.tgw .pt span{color:#b9b4c8;font-size:13.5px}
+.tgw .go{width:100%;max-width:360px;margin-top:auto;padding:15px;border:0;border-radius:16px;font:700 16px Inter,system-ui,sans-serif;color:#2a1d05;background:linear-gradient(180deg,#F6DFA6,#E0B566);box-shadow:0 8px 28px rgba(230,192,122,.35);cursor:pointer}
+.tgw .gap{flex:1;min-height:16px}
 </style>
 <script>
 (function () {
@@ -54,6 +65,47 @@
       document.body.appendChild(o);
     });
   }
+  // Til tanlangandan keyin: ilova haqida qisqa salomlashuv (rasm va 3 ta asosiy gap)
+  var WEL = {
+    lat: { h: 'Assalomu alaykum!', s: 'Halol mehnat, vositachisiz. Ish va ishchi bir-birini to‘g‘ridan-to‘g‘ri topadi.', go: 'Boshlash', p: [
+      ['💼', 'Ishchi kerakmi?', 'E’lon joylang — yaqin atrofdagi mos ishchilar ro‘yxati darhol chiqadi.'],
+      ['🙋', 'Ish qidiryapsizmi?', 'Qila oladigan ishingizni yozing — sizga mos yangi ishlar o‘zi ko‘rsatiladi.'],
+      ['🤝', 'Bepul va to‘g‘ridan-to‘g‘ri', 'Vositachi yo‘q, e’lon joylash tekin. Hech kimga oldindan pul to‘lamang.']] },
+    cyr: { h: 'Ассалому алайкум!', s: 'Ҳалол меҳнат, воситачисиз. Иш ва ишчи бир-бирини тўғридан-тўғри топади.', go: 'Бошлаш', p: [
+      ['💼', 'Ишчи керакми?', 'Эълон жойланг — яқин атрофдаги мос ишчилар рўйхати дарҳол чиқади.'],
+      ['🙋', 'Иш қидиряпсизми?', 'Қила оладиган ишингизни ёзинг — сизга мос янги ишлар ўзи кўрсатилади.'],
+      ['🤝', 'Бепул ва тўғридан-тўғри', 'Воситачи йўқ, эълон жойлаш текин. Ҳеч кимга олдиндан пул тўламанг.']] },
+    ru: { h: 'Здравствуйте!', s: 'Честный труд, без посредников. Работа и работники находят друг друга напрямую.', go: 'Начать', p: [
+      ['💼', 'Нужны работники?', 'Разместите объявление — сразу увидите подходящих работников рядом.'],
+      ['🙋', 'Ищете работу?', 'Напишите, что умеете, — подходящие новые вакансии появятся сами.'],
+      ['🤝', 'Бесплатно и напрямую', 'Без посредников, объявления бесплатные. Никому не платите заранее.']] },
+  };
+  var ART = '<svg viewBox="0 0 300 170" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+    + '<defs><linearGradient id="wg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F6DFA6"/><stop offset="1" stop-color="#D9A94F"/></linearGradient>'
+    + '<linearGradient id="wm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b9ffd9"/><stop offset="1" stop-color="#3fcf8e"/></linearGradient></defs>'
+    + '<g fill="none" stroke="rgba(255,255,255,.12)" stroke-width="1.2"><circle cx="150" cy="85" r="78"/><circle cx="150" cy="85" r="56"/></g>'
+    + '<path d="M78 92 C110 40 190 40 222 92" fill="none" stroke="#E6C07A" stroke-width="2.4" stroke-dasharray="5 7" stroke-linecap="round"/>'
+    + '<g transform="translate(40 70)"><rect width="76" height="76" rx="22" fill="url(#wg)"/><rect x="20" y="30" width="36" height="26" rx="5" fill="none" stroke="#2a1d05" stroke-width="3.4"/><path d="M30 30v-5a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v5M20 41h36" fill="none" stroke="#2a1d05" stroke-width="3.4" stroke-linecap="round"/></g>'
+    + '<g transform="translate(184 70)"><rect width="76" height="76" rx="22" fill="url(#wm)"/><circle cx="38" cy="30" r="9" fill="none" stroke="#0c3a25" stroke-width="3.4"/><path d="M22 58c2-10 9-15 16-15s14 5 16 15" fill="none" stroke="#0c3a25" stroke-width="3.4" stroke-linecap="round"/></g>'
+    + '<g transform="translate(150 50)"><circle r="21" fill="#141420" stroke="#E6C07A" stroke-width="2.4"/><path d="M-9 1l6 6 12-13" fill="none" stroke="#E6C07A" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></g>'
+    + '<g fill="#E6C07A" opacity=".7"><circle cx="38" cy="38" r="2.5"/><circle cx="262" cy="34" r="2"/><circle cx="272" cy="150" r="2.5"/><circle cx="26" cy="150" r="2"/></g>'
+    + '</svg>';
+  function welcome(sc) {
+    var t = WEL[sc] || WEL.lat;
+    return new Promise(function (res) {
+      var o = document.createElement('div'); o.className = 'tgw';
+      var h = ART + '<h1></h1><div class="sub"></div>';
+      t.p.forEach(function () { h += '<div class="pt"><i></i><div><b></b><span></span></div></div>'; });
+      o.innerHTML = h + '<div class="gap"></div><button class="go"></button>';
+      var nm = (tgName() || '').split(' ')[0];
+      o.querySelector('h1').textContent = nm ? t.h.replace('!', ', ' + nm + '!') : t.h;
+      o.querySelector('.sub').textContent = t.s;
+      o.querySelectorAll('.pt').forEach(function (e, k) { e.querySelector('i').textContent = t.p[k][0]; e.querySelector('b').textContent = t.p[k][1]; e.querySelector('span').textContent = t.p[k][2]; });
+      var g = o.querySelector('.go'); g.textContent = t.go;
+      g.onclick = function () { try { w.HapticFeedback && w.HapticFeedback.impactOccurred('light'); } catch (e) {} o.remove(); res(); };
+      document.body.appendChild(o);
+    });
+  }
   function lang(msg) {
     if (/[а-яё]/i.test(msg)) return /[ўқғҳ]/i.test(msg) ? 'cyr' : 'ru';
     return api.script || 'lat';
@@ -80,11 +132,11 @@
     return u ? [u.first_name, u.last_name].filter(Boolean).join(' ').trim() : '';
   }
   function prompt(msg, value) {
-    // Birinchi kirish (yoki tozalashdan keyin): avval til, keyin ism Telegramdan olinadi (so'ralmaydi)
+    // Birinchi kirish (yoki tozalashdan keyin): avval til, keyin ilova haqida salomlashuv, keyin ism Telegramdan olinadi (so'ralmaydi)
     if (!value && (msg === L.name.lat || msg === L.name.cyr || msg === L.name.ru)) {
       return chooseLang().then(function (s) {
         api.script = s;
-        return tgName() || box(L.name[s], true, '', false);
+        return welcome(s).then(function () { return tgName() || box(L.name[s], true, '', false); });
       });
     }
     // Telefon raqami: avval Telegramdan, bermasa qo'lda yoki tugma orqali
