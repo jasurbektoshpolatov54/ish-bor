@@ -96,6 +96,15 @@ describe('qidiruv', () => {
   it('sarlavha', () => {
     const db = freshDB();
     expect(title(db, bor('a', { people: 3 }))).toBe('Yuk tashish, 3 ta ishchi');
+    expect(title(db, bor('b', { people: 2, jobs: ['yuk', 'qurilish'] }))).toBe('Yuk tashish · Qurilish, 2 ta ishchi');
+  });
+  it('bir nechta ish turi: filtr har biriga mos keladi', () => {
+    const db = freshDB();
+    db.users.push(user('o'));
+    db.listings.push(bor('a', { jobs: ['yuk', 'qurilish'] }));
+    expect(search(db, undefined, { kind: 'bor', jobs: ['qurilish'] }, T)).toHaveLength(1);
+    expect(search(db, undefined, { kind: 'bor', jobs: ['yuk'] }, T)).toHaveLength(1);
+    expect(search(db, undefined, { kind: 'bor', jobs: ['oshxona'] }, T)).toHaveLength(0);
   });
 });
 

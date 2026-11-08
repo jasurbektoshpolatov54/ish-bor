@@ -44,7 +44,8 @@ await expectScreen('home'); await has('Jasur'); await shot('home');
 await tap('nav', 'post'); await expectScreen('post');
 await tap('psubmit'); // hali tayyor emas: hech narsa bo‘lmasligi kerak
 await expectScreen('post');
-await tap('pjob', 'yuk');
+await tap('pjob', 'yuk'); await tap('pjob', 'qurilish'); await tap('pjob', 'tozalash'); await tap('pjob', 'tozalash');
+{ const on = await p.$$eval('[data-a="pjob"].on', (e) => e.map((x) => x.dataset.v)); if (on.join() !== 'yuk,qurilish') errs.push(`ko‘p ish turi: ${on}`); await shot('post-kop-ish'); }
 await fill('[data-in="izoh"]', 'Mebel tashish, 3-qavat');
 await tap('paddr'); await expectScreen('region'); await has('Samarqand viloyati'); await has('Qoraqalpog‘iston'); await shot('region');
 // 4: viloyat → tuman/shahar, orqaga, lokatsiya
@@ -91,7 +92,7 @@ for (const k of ['2', '5', '0', '0', '0', '0']) await tap('key', k);
 await tap('aok');
 await has('250 000'); await shot('forma-toliq');
 await tap('psubmit'); await expectScreen('done'); await shot('joylandi');
-await tap('nav', 'home'); await has('Yuk tashish'); await shot('home-elon');
+await tap('nav', 'home'); await has('Yuk tashish · Qurilish'); await shot('home-elon');
 
 // To‘lov kaliti o‘chiq: TOP, tarif va to‘lov hech qayerda ko‘rinmaydi
 const noPay = async (where) => {

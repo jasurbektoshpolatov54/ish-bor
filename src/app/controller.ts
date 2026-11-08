@@ -32,14 +32,16 @@ let root: HTMLElement;
 let lastBack = 0;
 
 /* ---------- Qoralama (forma) ---------- */
-interface BorDraft { job?: string; izoh: string; district?: string; lat?: number; lng?: number; radius?: number; when?: number; people: number; kim?: ForWhom; payType?: PayType; kun?: number; soat?: number; phone: boolean }
+interface BorDraft { jobs: string[]; /** eski qoralama */ job?: string; izoh: string; district?: string; lat?: number; lng?: number; radius?: number; when?: number; people: number; kim?: ForWhom; payType?: PayType; kun?: number; soat?: number; phone: boolean }
 interface KerakDraft { jobs: string[]; any: boolean; days: number[]; district?: string; lat?: number; lng?: number; radius?: number; pay?: number; gender?: Gender; traits: number[]; extra: string; voice?: string; voiceSec?: number; phone: boolean }
 interface Draft { kind: Kind; bor: BorDraft; kerak: KerakDraft }
-const newDraft = (k: Kind = 'bor'): Draft => ({ kind: k, bor: { izoh: '', people: 1, phone: false }, kerak: { jobs: [], any: false, days: [], traits: [], extra: '', phone: false } });
+const newDraft = (k: Kind = 'bor'): Draft => ({ kind: k, bor: { jobs: [], izoh: '', people: 1, phone: false }, kerak: { jobs: [], any: false, days: [], traits: [], extra: '', phone: false } });
 function draft(): Draft {
   const u = me()!;
   if (!db.drafts[u.id]) db.drafts[u.id] = newDraft(u.lastKind || 'bor');
-  return db.drafts[u.id] as Draft;
+  const d = db.drafts[u.id] as Draft;
+  if (!d.bor.jobs) { d.bor.jobs = d.bor.job ? [d.bor.job] : []; delete d.bor.job; }
+  return d;
 }
 
 /* ---------- Yordamchilar ---------- */
@@ -209,9 +211,9 @@ function postVM(): U.PostVM {
   const lockP = phoneLocked();
   if (d.kind === 'bor') {
     const b = d.bor;
-    const ready = !!b.job && !!b.district && b.radius != null && !!b.when && !!b.kim && !!b.payType && (b.payType === 'kelishiladi' || !!(b.payType === 'kun' ? b.kun : b.soat));
+    const ready = b.jobs.length > 0 && !!b.district && b.radius != null && !!b.when && !!b.kim && !!b.payType && (b.payType === 'kelishiladi' || !!(b.payType === 'kun' ? b.kun : b.soat));
     return {
-      kind: 'bor', jobs: activeJobs().map((j) => ({ ...j, on: b.job === j.id })), izoh: esc(b.izoh),
+      kind: 'bor', jobs: activeJobs().map((j) => ({ ...j, on: b.jobs.includes(j.id) })), izoh: esc(b.izoh),
       addr: b.district || 'Tanlang', addrSub: b.district && b.radius != null ? (b.radius === 4 ? 'Ishchilar istalgan joydan' : `Ishchilar ${RADII[b.radius].split('–').pop()}`.replace(' km', ' km gacha')) : undefined,
       when: b.when ? whenText({ when: b.when } as Listing) : 'Tanlang', people: b.people, kim: b.kim ? genderLabel(b.kim) : undefined,
       pay: { kun: b.kun ? money(b.kun) : '—', soat: b.soat ? money(b.soat) : '—', type: b.payType }, phone: b.phone || lockP, phoneLocked: lockP, ready,
@@ -580,7 +582,7 @@ async function act(a: string, v: string | undefined, el: HTMLElement) {
     case 'pkind': draft().kind = v as Kind; u.lastKind = v as Kind; save(); return render(true);
     case 'pjob': {
       const d = draft();
-      if (d.kind === 'bor') d.bor.job = d.bor.job === v ? undefined : v;
+      if (d.kind === 'bor') d.bor.jobs = d.bor.jobs.includes(v!) ? d.bor.jobs.filter((x) => x !== v) : [...d.bor.jobs, v!];
       else { d.kerak.any = false; d.kerak.jobs = d.kerak.jobs.includes(v!) ? d.kerak.jobs.filter((x) => x !== v) : [...d.kerak.jobs, v!]; }
       save(); return render();
     }
@@ -711,7 +713,7 @@ function flashMissing() {
   const d = draft();
   if (d.kind === 'bor') {
     const b = d.bor;
-    if (!b.job) return flash('[data-f="jobs"]+.chips');
+    if (!b.jobs.length) return flash('[data-f="jobs"]+.chips');
     if (!b.district || b.radius == null) return flash('[data-a="paddr"]');
     if (!b.when) return flash('[data-a="pwhen"]');
     if (!b.kim) return flash('[data-f="kim"]');
@@ -784,7 +786,7 @@ async function submitPost() {
   let l: Listing;
   if (d.kind === 'bor') {
     const b = d.bor;
-    l = { id: uid('l'), kind: 'bor', owner: u.id, jobs: [b.job!], izoh: b.izoh.trim() || undefined, district: b.district!, lat: b.lat!, lng: b.lng!, radius: b.radius!, when: b.when, people: b.people, forWhom: b.kim, payType: b.payType!, pay: b.payType === 'kun' ? b.kun : b.payType === 'soat' ? b.soat : undefined, days: [], traits: [], showPhone: b.phone || phoneLocked(), status: 'faol', createdAt: t, calls: 0, views: 0 };
+    l = { id: uid('l'), kind: 'bor', owner: u.id, jobs: [...b.jobs], izoh: b.izoh.trim() || undefined, district: b.district!, lat: b.lat!, lng: b.lng!, radius: b.radius!, when: b.when, people: b.people, forWhom: b.kim, payType: b.payType!, pay: b.payType === 'kun' ? b.kun : b.payType === 'soat' ? b.soat : undefined, days: [], traits: [], showPhone: b.phone || phoneLocked(), status: 'faol', createdAt: t, calls: 0, views: 0 };
     db.listings.push(l);
   } else {
     const k = d.kerak;
