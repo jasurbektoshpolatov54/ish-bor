@@ -18,7 +18,7 @@ export const jobIcon = (db: DB, id: string) => db.jobTypes.find((j) => j.id === 
 
 /** 4.2: e’lon nomi o‘zi yasaladi */
 export function title(db: DB, l: Listing) {
-  if (l.kind === 'bor') return `${jobName(db, l.jobs[0])}, ${l.people} ta ishchi`;
+  if (l.kind === 'bor') return `${l.jobs.map((j) => jobName(db, j)).join(' · ')}, ${l.people} ta ishchi`;
   const u = db.users.find((x) => x.id === l.owner);
   return personTitle(u);
 }
